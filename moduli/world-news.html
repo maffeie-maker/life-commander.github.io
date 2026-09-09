@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>World News</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --text: #1d1d1f;
+      --card-bg: #F5F5F5;
+      --link: #0071e3;
+    }
+
+    [data-theme='dark'] {
+      --bg: #1d1d1f;
+      --text: #f5f5f7;
+      --card-bg: #2c2c2e;
+      --link: #0a84ff;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    header {
+      padding: 30px 20px 10px;
+      text-align: center;
+    }
+
+    .back {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      color: var(--link);
+      text-decoration: none;
+    }
+
+    header h1 {
+      font-size: 2.5em;
+      font-weight: 600;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .controls select, .controls button {
+      font-size: 1em;
+      padding: 8px 12px;
+      border-radius: 57px;
+      border: 1px solid #ccc;
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .news-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 30px;
+      padding: 20px;
+      max-width: 2500px;
+      margin: auto;
+    }
+
+    .news-card {
+      background-color: var(--card-bg);
+      border-radius: 57px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.50);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .news-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    .news-card img {
+      width: 100%;
+      height: 175px;
+      object-fit: cover;
+      background-color: #ddd;
+    }
+
+    .news-card-content {
+      padding: 25px;
+	height: 100px;
+    }
+
+    .news-card-title {
+      font-weight: 500;
+      font-size: 1.3em;
+      margin-bottom: 10px;
+      color: var(--link);
+    }
+
+    .news-card-source {
+      font-size: 0.9em;
+      color: #888;
+    }
+
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      padding: 30px;
+      border-radius: 57px;
+      max-width: 1500px;
+      max-height: 100%;
+      overflow-y: auto;
+      color: var(--text);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      font-size: 1.5em;
+      cursor: pointer;
+      color: white;
+    }
+
+    @media (max-width: 768px) {
+      header h1 {
+        font-size: 1.8em;
+      }
+
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .controls select,
+      .controls button {
+        width: 100%;
+        font-size: 1em;
+      }
+
+      .modal-content {
+        width: 90%;
+        padding: 20px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .news-card img {
+        height: 140px;
+      }
+
+      .news-card-content {
+        padding: 14px;
+      }
+
+      .news-card-title {
+        font-size: 1em;
+      }
+
+      .news-card-source {
+        font-size: 0.8em;
+      }
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <header>
+    <a class="back" href="../index.html">&#8249; Life Commander</a>
+    <h1>World News</h1>
+    <div class="controls">
+      <select id="feedFilter">
+        <option value="all">Tutte le fonti</option>
+      </select>
+      <button id="toggleTheme">Tema: Chiaro</button>
+    </div>
+  </header>
+
+  <div class="news-container" id="news-container"></div>
+
+  <div class="modal" id="modal">
+    <div class="modal-close" onclick="closeModal()">×</div>
+    <div class="modal-content" id="modal-content"></div>
+  </div>
+
+  <script>
+        const feeds = [
+{
+        title: 'La Colazione dei Campioni',
+        url: 'https://lacolazionedeicampioni.substack.com/feed',
+        logo: 'https://substackcdn.com/image/fetch/w_80,h_80,c_fill,f_webp,q_auto:good,fl_progressive:steep,g_auto/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F4033474c-734d-41b7-ad08-1033d7b58620_256x256.png'  
+   }, 
+{
+        title: 'Quinta’s weblog',
+        url: 'https://blog.quintarelli.it/feed/',
+        logo: 'https://blog.quintarelli.it/wp-content/uploads/2021/07/quinta-logo-50x50.png'  
+   }, 
+
+{
+        title: 'Appunti',
+        url: 'https://appunti.substack.com/feed',
+        logo: 'https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F744021b9-7796-4aef-9842-71cf5228e9b5_500x500.png'
+      },
+{
+        title: 'Rivista Studio',
+        url: 'https://www.rivistastudio.com/feed/',
+        logo: 'https://www.rivistastudio.com/wp-content/uploads/2026/04/Rivista-studio_testata_BLACK-1.svg'
+      },
+{
+        title: 'Frank Merenda',
+        url: 'https://frankmerenda.substack.com/feed',
+        logo: 'https://frankmerenda.com/wp-content/uploads/2018/12/mm-logo-150x150.jpg'
+      },
+{
+        title: 'Lettera 43',
+        url: 'https://www.lettera43.it/feed/',
+        logo: 'https://www.lettera43.it/wp-content/uploads/2025/10/logo-lettera43-390x76.png.webp'
+      },
+
+{
+        title: 'Tragicomico',
+        url: 'https://www.tragicomico.it/feed/',
+        logo: 'https://www.tragicomico.it/wp-content/uploads/2020/01/tragicomico-ivan-petruzzi-blog-libro.jpg'
+      },
+{
+        title: 'Screencrush',
+        url: 'https://screencrush.com/feed/',
+        logo: 'https://townsquare.media/site/442/files/2018/04/screencrush-high-rez.png'
+      },
+
+{
+        title: 'La Cantina dei Dannati',
+        url: 'https://lacantinadeidannati.substack.com/feed',
+        logo: 'https://substackcdn.com/image/fetch/$s_!PuyT!,e_trim:10:white/e_trim:10:transparent/h_72,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F9a60630a-52ef-483b-8176-db48aeee1d2a_4000x2500.png'
+      },
+{
+        title: 'BillyJoel.com',
+        url: 'https://www.billyjoel.com/latest-news/feed/',
+        logo: 'https://www.redsoxfoundation.org/assets/Billy-Joel.png'
+      },
+{
+        title: 'Kommander61',
+        url: 'https://kommander61.substack.com/feed',
+        logo: 'https://substackcdn.com/image/fetch/$s_!hh_M!,e_trim:10:white/e_trim:10:transparent/h_72,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F1a700623-a387-4fc9-aa6a-d64f6ad8d02d_1344x256.png'
+      },
+
+      {
+        title: 'The New York Times',
+        url: 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml',
+        logo: 'https://1000logos.net/wp-content/uploads/2017/04/New-York-Times-logo-500x281.png'
+      },
+{
+        title: 'Il Segno di Giona',
+        url: 'https://ilsegnodigiona.com/feed/',  
+        logo: 'https://ilsegnodigiona.com/wp-content/uploads/2026/06/logo-david-senza-sfondo-3.png?w=300&h=300'
+
+      },
+{
+        title: 'Floydiani',
+        url: 'https://floydiani.it/feed/',
+        logo: 'https://www.floydiani.it/wp-content/uploads/2015/08/Testata-sito-Floydiani-1024x147.png'
+      },
+{
+        title: 'Pink Floyd Italia',
+        url: 'https://www.pink-floyd.it/feed/',
+        logo: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgMzVhOUHQTwWzySw6jSt4G-dAy3Xpen8EGzbNElOtQ3GtN8M0oLML9rXpSsYdj4PQoBzP-Debz7Vr9dh93pu_K_zFFQ4x-b85WogQg8qTFkY6ziE_gCSEaLDchOTEzL8Oqr4tZPXJcVZg/s320/2000px-Pink_Floyd_logo.svg.png'
+      },
+{
+        title: 'iSpazio.net',
+        url: 'https://www.ispazio.net/feed',
+        logo: 'https://www.ispazio.net/wp-content/uploads/2022/06/ispazio-logo-2022-x2.png'
+      },
+{
+        title: 'Six Colors',
+        url: 'https://feedpress.me/sixcolors',
+        logo: 'https://static.feedpress.com/logo/sixcolors.png'
+      },
+{
+        title: 'Pink Floyd ',
+        url: 'https://feeds.feedburner.com/brain-damage-news',
+        logo: 'https://www.virginradio.it/resizer/1104/621/true/the_dark_side_of_the_moon2-1674116790970.png--pink_floyd__i_50_anni_di_the_dark_side_of_the_moon__pubblicata_la_nuova_versione_rimasterizzata_di_brain_damage__ascoltala_qui.png'
+      },
+
+      {
+        title: 'Fox News',
+        url: 'https://feeds.foxnews.com/foxnews/latest',
+        logo: 'https://variety.com/wp-content/uploads/2013/12/fox-news-logo.jpg'
+      },
+{
+        title: 'Capibara',
+        url: 'https://capibara.substack.com/feed',
+        logo: 'https://substackcdn.com/image/fetch/$s_!lCSp!,e_trim:10:white/e_trim:10:transparent/h_72,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F33731273-030f-4484-9317-a21eb98a13ed_1344x256.png'
+      },
+      {
+        title: 'ABC News',
+        url: 'https://feeds.abcnews.com/abcnews/topstories',
+        logo: 'https://upload.wikimedia.org/wikipedia/commons/4/4a/ABC_News_logo_2015.png'
+      },
+      {
+        title: 'BBC News',
+        url: 'http://feeds.bbci.co.uk/news/world/rss.xml',
+        logo: 'https://upload.wikimedia.org/wikipedia/commons/b/bc/BBC_News_2019.svg'
+      },
+      {
+        title: 'Sky News',
+        url: 'http://feeds.skynews.com/feeds/rss/home.xml',
+        logo: 'https://upload.wikimedia.org/wikipedia/commons/1/11/Sky_News_2015_logo.svg'
+      },
+      {
+        title: 'ADN Kronos',
+        url: 'https://www.adnkronos.com/RSS_Ultimora.xml',
+        logo: 'https://images.seeklogo.com/logo-png/32/1/adnkronos-logo-png_seeklogo-322795.png'
+      },
+      {
+        title: 'La Repubblica',
+        url: 'https://www.repubblica.it/rss/homepage/rss2.0.xml',
+        logo: 'https://www.inknot.it/wp-content/uploads/2020/04/La_Repubblica_logo513.png'
+      },
+      {
+        title: 'Corriere della Sera',
+        url: 'https://xml2.corriereobjects.it/feed-hp/homepage.xml',
+        logo: 'https://i0.wp.com/viaggiosoloandata.it/wp-content/uploads/2020/01/Corriere-della-Sera-LOGO-FAT.png'
+      },
+      {
+        title: 'Ansa',
+        url: 'https://www.ansa.it/sito/ansait_rss.xml',
+        logo: 'https://proformaweb.it/wp-content/uploads/2021/12/ansa_sr.jpg'
+      },
+      {
+        title: 'Il Post',
+        url: 'https://www.ilpost.it/feed',
+        logo: 'https://www.ilpost.it/wp-content/uploads/2021/05/ilpost-anteprima-logo.png'
+      },
+      {
+        title: 'AGI',
+        url: 'http://www.agi.it/cronaca/rss',
+        logo: 'https://www.castedutainment.com/wp-content/uploads/2021/09/AGI-LOGGO.png'
+      },
+      {
+        title: 'Euronews',
+        url: 'https://it.euronews.com/rss?format=mrss&level=theme&name=news',
+        logo: 'https://staticcyl.euronews.com/wp-content/uploads/2022/12/euronews-logo-our-brands-neon-300x132.png'
+      },
+      {
+        title: 'The Verge',
+        url: 'http://www.theverge.com/rss/index.xml',
+        logo: 'https://upload.wikimedia.org/wikipedia/commons/f/fb/The_Verge_Logo_2016.svg'
+      },
+{
+        title: 'Basic Apple Guy',
+        url: 'https://www.basicappleguy.com/basicappleblog?format=rss',
+        logo: 'https://images.squarespace-cdn.com/content/v1/5e949a92e17d55230cd1d44f/6243f5f9-e0cd-4f4f-9158-3a0e589186a6/Logo+Blank.png'
+      },      
+{
+        title: '9to5 Mac',
+        url: 'http://9to5mac.com/feed',
+        logo: 'https://getlogovector.com/wp-content/uploads/2019/10/9to5mac-logo-vector.png'
+      },
+{
+        title: 'Ossessioni',
+        url: 'https://lucapulsoni.substack.com/feed',
+        logo: ''
+      },
+{
+        title: 'NicolaPorro.it ',
+        url: 'https://www.nicolaporro.it/feed/',
+        logo: 'https://nicolaporro.np.ticdn.it/wp-content/uploads/2019/12/logo-push.png'
+      },
+{
+        title: 'Impronte',
+        url: 'https://stefanonazzi.substack.com/feed',
+        logo: 'https://substackcdn.com/image/fetch/$s_!fFtt!,e_trim:10:white/e_trim:10:transparent/h_72,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fc5a5a379-6758-489f-b845-2f3ed9d36087_1344x256.png'
+      },
+
+{
+        title: 'Macrumors',
+        url: 'http://feeds.macrumors.com/MacRumors-All',
+        logo: 'https://iconlogovector.com/uploads/images/2024/11/lg-67466260acb83-MacRumors.webp'
+      },
+      {
+        title: 'Apple Newsroom',
+        url: 'http://www.apple.com/pr/feeds/pr.rss',
+        logo: 'https://9to5mac.com/wp-content/uploads/sites/6/2016/06/apple-newsroom.png'
+      },
+      {
+        title: 'Open.Online',
+        url: 'https://www.open.online/feed/',
+        logo: 'https://static.cairorcsmedia.it/wp-content/uploads/2021/10/Open-300x300.jpg'
+      },
+{
+        title: 'Neolingua',
+        url: 'https://resistere.substack.com/feed',
+        logo: 'https://substackcdn.com/image/fetch/$s_!bwdx!,w_80,h_80,c_fill,f_webp,q_auto:good,fl_progressive:steep,g_auto/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F3d1aa197-8037-4b85-a2c6-9f732ef53071_200x200.jpeg'
+      },
+{
+        title: 'IRANINTL',
+        url: 'https://www.iranintl.com/en/feed',
+        logo: 'https://www.iranintl.com/images/ii/ii-logo-fa.svg?dpl=dpl_Hu8Sc2G5zXW9MWqfqx4eTCuZRSm4'
+      },
+ 
+ {
+        title: 'Daring Fireball',
+        url: 'http://daringfireball.net/feeds/main',
+        logo: 'https://chrisglass.com/wp-content/uploads/2005/01/daring-fireball-logo.jpg'
+      }
+    ];
+
+    const container = document.getElementById('news-container');
+    const modal = document.getElementById('modal');
+    const modalContent = document.getElementById('modal-content');
+    const feedFilter = document.getElementById('feedFilter');
+    const toggleTheme = document.getElementById('toggleTheme');
+
+    let allArticles = [];
+
+    feeds.forEach(feed => {
+      const option = document.createElement('option');
+      option.value = feed.title;
+      option.textContent = feed.title;
+      feedFilter.appendChild(option);
+    });
+
+    function loadFeeds() {
+      allArticles = [];
+      container.innerHTML = '';
+      const fetches = feeds.map(feed =>
+        fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (!data.items) return;
+            data.items.forEach(item => {
+              const article = {
+                title: item.title,
+                content: item.content || item.description || '',
+                link: item.link,
+                thumbnail: item.thumbnail || null,
+                pubDate: new Date(item.pubDate),
+                source: feed.title,
+                sourceLogo: feed.logo
+              };
+              allArticles.push(article);
+            });
+          }).catch(e => console.error('Errore feed:', feed.title, e))
+      );
+
+      Promise.all(fetches).then(() => {
+        displayArticles();
+      });
+    }
+
+    function displayArticles() {
+      container.innerHTML = '';
+      const selected = feedFilter.value;
+      const filtered = selected === 'all' ? allArticles : allArticles.filter(a => a.source === selected);
+      filtered.sort((a, b) => b.pubDate - a.pubDate);
+
+      filtered.forEach(article => {
+        const card = document.createElement('div');
+        card.className = 'news-card';
+        card.onclick = () => openModal(article.title, article.content, article.link);
+
+        // Se manca thumbnail, usa logo sorgente
+        const imgSrc = article.thumbnail ? article.thumbnail : article.sourceLogo;
+
+        card.innerHTML = `
+          <img src="${imgSrc}" alt="Immagine notizia" onerror="this.onerror=null;this.src='${article.sourceLogo}'" />
+          <div class="news-card-content">
+            <div class="news-card-title">${article.title}</div>
+            <div class="news-card-source">${article.source} - ${article.pubDate.toLocaleString()}</div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function openModal(title, content, link) {
+      modalContent.innerHTML = `
+        <h2>${title}</h2>
+        <p>${content}</p>
+        <p><a href="${link}" target="_blank" rel="noopener">Leggi su sito originale →</a></p>
+      `;
+      modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+      modal.style.display = 'none';
+    }
+
+    feedFilter.addEventListener('change', displayArticles);
+
+    toggleTheme.addEventListener('click', () => {
+      const current = document.body.getAttribute('data-theme');
+      const next = current === 'light' ? 'dark' : 'light';
+      document.body.setAttribute('data-theme', next);
+      toggleTheme.textContent = `Tema: ${next === 'light' ? 'Chiaro' : 'Scuro'}`;
+    });
+
+    loadFeeds();
+    setInterval(loadFeeds, 20 * 60 * 1000); // ogni 20 minuti
+  </script>
+</body>
+</html>
