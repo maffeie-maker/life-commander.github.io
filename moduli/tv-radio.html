@@ -99,7 +99,7 @@
         Apri sul sito ufficiale <i class="ti ti-external-link" aria-hidden="true"></i>
       </a>
     </div>
-    <p class="tv-note" id="tvNote">Rai 1, Rai 2 e Rai 3 sono riprodotte direttamente qui (video muto di default, tocca l'icona dell'altoparlante per attivare l'audio). Sky TG24 e Sky News arrivano invece dal loro canale YouTube ufficiale (parte muto di default, i controlli audio sono quelli del player YouTube in basso a destra del video).</p>
+    <p class="tv-note" id="tvNote">Rai 2 è sempre riprodotta direttamente qui. Rai 1 e Rai 3 lo sono quando possibile, altrimenti (per una restrizione del server Rai) si aprono sul sito ufficiale in un'altra scheda — la radio sotto continua comunque a suonare. Sky TG24 e Sky News arrivano dal loro canale YouTube ufficiale, con lo stesso comportamento di riserva se un giorno bloccassero l'incorporamento.</p>
   </div>
 
   <p class="section-title">Radio</p>
@@ -231,8 +231,9 @@
   function showLoadError(ch){
     tvFrameWrap.innerHTML = `<div class="tv-placeholder">
       <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-      <span>Diretta non disponibile al momento — usa "Apri sul sito ufficiale"</span>
+      <span>${ch.name} non è riproducibile qui (il server Rai blocca la lettura da siti esterni) — apro il sito ufficiale</span>
     </div>`;
+    window.open(ch.externalUrl, '_blank', 'noopener');
   }
 
   renderChips(null);
