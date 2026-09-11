@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TV + Radio</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
+<script src="https://www.youtube.com/iframe_api"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f7;
+    color: #1d1d1f;
+    padding: 32px 16px 64px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  .back { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: #0071e3; text-decoration: none; margin-bottom: 18px; }
+
+  .section-title {
+    font-size: 13px; font-weight: 500; color: #6e6e73; text-transform: uppercase;
+    letter-spacing: 0.04em; margin: 28px 0 10px;
+  }
+  .section-title:first-of-type { margin-top: 4px; }
+
+  .channels-row {
+    display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px;
+  }
+  .channel-chip {
+    flex: 0 0 auto;
+    display: flex; align-items: center; gap: 8px;
+    background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 980px;
+    padding: 8px 14px 8px 8px; cursor: pointer;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+  }
+  .channel-chip.active { box-shadow: 0 0 0 2px #0071e3, 0 6px 16px rgba(0,0,0,0.08); }
+  .channel-chip img { width: 26px; height: 26px; border-radius: 7px; object-fit: contain; background: #f5f5f7; }
+  .channel-chip span { font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .channel-chip .badge-ext { font-size: 9px; color: #86868b; font-weight: 500; }
+
+  .tv-panel {
+    background: #fff; border-radius: 32px; border: 0.5px solid rgba(0,0,0,0.06);
+    overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+  }
+  .tv-frame-wrap { position: relative; width: 100%; aspect-ratio: 16/9; background: #101012; }
+  .tv-frame-wrap iframe, .tv-frame-wrap video { width: 100%; height: 100%; border: 0; display: block; background: #101012; }
+  .tv-placeholder {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #86868b; gap: 8px; text-align: center; padding: 20px;
+  }
+  .tv-placeholder i { font-size: 34px; }
+  .tv-mute-btn {
+    position: absolute; bottom: 12px; right: 12px;
+    width: 38px; height: 38px; border-radius: 50%; border: none;
+    background: rgba(20,20,22,0.55); backdrop-filter: blur(6px);
+    color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .tv-mute-btn i { font-size: 17px; }
+  .tv-footer {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 12px 16px; flex-wrap: wrap;
+  }
+  .tv-footer .now-ch { font-size: 13px; font-weight: 600; }
+  .tv-footer a {
+    font-size: 12px; color: #0071e3; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+  }
+  .tv-note { font-size: 11px; color: #86868b; padding: 0 16px 14px; margin: 0; }
+
+  .radio-panel {
+    background: #fff; border-radius: 32px; border: 0.5px solid rgba(0,0,0,0.06);
+    overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+  }
+  .radio-panel iframe { width: 100%; height: 440px; border: 0; display: block; }
+
+  footer { text-align: center; font-size: 12px; color: #a1a1a6; margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="back" href="../index.html"><i class="ti ti-chevron-left" aria-hidden="true"></i> Life Commander</a>
+
+  <p class="section-title">Diretta TV</p>
+  <div class="channels-row" id="channelsRow"></div>
+
+  <div class="tv-panel">
+    <div class="tv-frame-wrap" id="tvFrameWrap">
+      <div class="tv-placeholder" id="tvPlaceholder">
+        <i class="ti ti-device-tv" aria-hidden="true"></i>
+        <span>Scegli un canale qui sopra</span>
+      </div>
+    </div>
+    <div class="tv-footer">
+      <span class="now-ch" id="nowChannel">Nessun canale selezionato</span>
+      <a id="openExternal" href="#" target="_blank" rel="noopener" style="display:none;">
+        Apri sul sito ufficiale <i class="ti ti-external-link" aria-hidden="true"></i>
+      </a>
+    </div>
+    <p class="tv-note" id="tvNote">Rai 1, Rai 2 e Rai 3 sono riprodotte direttamente qui (video muto di default, tocca l'icona dell'altoparlante per attivare l'audio). Sky TG24 e Sky News arrivano invece dal loro canale YouTube ufficiale (parte muto di default, i controlli audio sono quelli del player YouTube in basso a destra del video).</p>
+  </div>
+
+  <p class="section-title">Radio</p>
+  <div class="radio-panel">
+    <iframe src="radio-commander.html" title="Radio Commander"></iframe>
+  </div>
+
+  <footer>Life Commander — TV + Radio</footer>
+</div>
+
+<script>
+  const channels = [
+    { id: "rai1", name: "Rai 1", logo: "https://logotyp.us/file/rai-1.svg", type: "hls", streamUrl: "https://mediapolis.rai.it/relinker/relinkerServlet.htm?cont=2606803", externalUrl: "https://www.raiplay.it/dirette/rai1" },
+    { id: "rai2", name: "Rai 2", logo: "https://logotyp.us/file/rai-2.svg", type: "hls", streamUrl: "https://d3k8wzt41aflvx.cloudfront.net/RAI2/Live.m3u8", externalUrl: "https://www.raiplay.it/dirette/rai2" },
+    { id: "rai3", name: "Rai 3", logo: "https://logotyp.us/file/rai-3.svg", type: "hls", streamUrl: "https://mediapolis.rai.it/relinker/relinkerServlet.htm?cont=308709", externalUrl: "https://www.raiplay.it/dirette/rai3" },
+    { id: "skytg24", name: "Sky TG24", logo: "https://logotyp.us/file/sky-tg24.svg", type: "youtube", videoId: "DBkiOifHkVE", externalUrl: "https://www.youtube.com/watch?v=DBkiOifHkVE" },
+    { id: "skynews", name: "Sky News", logo: "https://logotyp.us/file/sky-news.svg", type: "youtube", videoId: "xDWQ3LkccY8", externalUrl: "https://www.youtube.com/watch?v=xDWQ3LkccY8" }
+  ];
+
+  const channelsRow = document.getElementById('channelsRow');
+  const tvFrameWrap = document.getElementById('tvFrameWrap');
+  const nowChannel = document.getElementById('nowChannel');
+  const openExternal = document.getElementById('openExternal');
+
+  let hls = null;
+  let ytApiReady = false;
+  let ytPlayer = null;
+  let pendingYtChannel = null;
+
+  window.onYouTubeIframeAPIReady = function(){
+    ytApiReady = true;
+    if (pendingYtChannel){
+      loadYoutubeChannel(pendingYtChannel);
+      pendingYtChannel = null;
+    }
+  };
+
+  function renderChips(activeId){
+    channelsRow.innerHTML = '';
+    channels.forEach(ch => {
+      const chip = document.createElement('div');
+      chip.className = 'channel-chip' + (ch.id === activeId ? ' active' : '');
+      const extBadge = ch.type === 'external-only' ? '<span class="badge-ext">esterno</span>' : '';
+      chip.innerHTML = `<img src="${ch.logo}" alt="${ch.name}" onerror="this.style.display='none'"><span>${ch.name}</span>${extBadge}`;
+      chip.addEventListener('click', () => selectChannel(ch));
+      channelsRow.appendChild(chip);
+    });
+  }
+
+  function destroyHls(){
+    if (hls){ hls.destroy(); hls = null; }
+  }
+
+  function selectChannel(ch){
+    destroyHls();
+    nowChannel.textContent = ch.name;
+    openExternal.href = ch.externalUrl;
+    openExternal.style.display = 'inline-flex';
+    renderChips(ch.id);
+
+    if (ch.type === 'external-only'){
+      tvFrameWrap.innerHTML = `<div class="tv-placeholder">
+        <i class="ti ti-external-link" aria-hidden="true"></i>
+        <span>${ch.name} si guarda sul sito ufficiale</span>
+      </div>`;
+      window.open(ch.externalUrl, '_blank', 'noopener');
+      return;
+    }
+
+    if (ch.type === 'youtube'){
+      loadYoutubeChannel(ch);
+      return;
+    }
+
+    tvFrameWrap.innerHTML = `<video id="tvVideo" autoplay muted playsinline></video>
+      <button class="tv-mute-btn" id="tvMuteBtn"><i class="ti ti-volume-3" aria-hidden="true"></i></button>`;
+    const video = document.getElementById('tvVideo');
+    const muteBtn = document.getElementById('tvMuteBtn');
+
+    muteBtn.addEventListener('click', () => {
+      video.muted = !video.muted;
+      muteBtn.innerHTML = `<i class="ti ${video.muted ? 'ti-volume-3' : 'ti-volume'}" aria-hidden="true"></i>`;
+    });
+
+    if (window.Hls && Hls.isSupported()){
+      hls = new Hls();
+      hls.loadSource(ch.streamUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) showLoadError(ch);
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')){
+      video.src = ch.streamUrl;
+      video.play().catch(() => showLoadError(ch));
+    } else {
+      showLoadError(ch);
+    }
+  }
+
+  function loadYoutubeChannel(ch){
+    if (ytPlayer){
+      try{ ytPlayer.destroy(); }catch(e){}
+      ytPlayer = null;
+    }
+    if (!ytApiReady){
+      pendingYtChannel = ch;
+      tvFrameWrap.innerHTML = `<div class="tv-placeholder"><i class="ti ti-loader" aria-hidden="true"></i><span>Caricamento player YouTube…</span></div>`;
+      return;
+    }
+    tvFrameWrap.innerHTML = `<div id="ytPlayerContainer" style="width:100%;height:100%;"></div>`;
+    ytPlayer = new YT.Player('ytPlayerContainer', {
+      videoId: ch.videoId,
+      playerVars: { autoplay: 1, mute: 1, playsinline: 1 },
+      events: {
+        onError: function(){ showYoutubeBlocked(ch); }
+      }
+    });
+  }
+
+  function showYoutubeBlocked(ch){
+    tvFrameWrap.innerHTML = `<div class="tv-placeholder">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+      <span>${ch.name} blocca l'incorporamento su altri siti — apro il canale su YouTube</span>
+    </div>`;
+    window.open(ch.externalUrl, '_blank', 'noopener');
+  }
+
+  function showLoadError(ch){
+    tvFrameWrap.innerHTML = `<div class="tv-placeholder">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+      <span>Diretta non disponibile al momento — usa "Apri sul sito ufficiale"</span>
+    </div>`;
+  }
+
+  renderChips(null);
+</script>
+
+</body>
+</html>
