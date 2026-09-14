@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi Vista</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f7;
+    color: #1d1d1f;
+    overflow: hidden;
+  }
+
+  .top-bar {
+    display: flex;
+    align-items: center;
+    padding: 14px 20px 6px;
+  }
+
+  .back {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 13px; color: #0071e3; text-decoration: none;
+  }
+
+  .stage {
+    position: relative;
+    height: calc(100vh - 50px);
+    margin: 0 14px 14px;
+    --split-x: 50%;
+    --split-y: 50%;
+  }
+
+  .slot {
+    position: absolute;
+    background: #fff;
+    border-radius: 24px;
+    border: 0.5px solid rgba(0,0,0,0.06);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.16);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .slot[data-pos="tl"] { left: 0; top: 0; width: calc(var(--split-x) - 4px); height: calc(var(--split-y) - 4px); }
+  .slot[data-pos="tr"] { left: calc(var(--split-x) + 4px); top: 0; width: calc(100% - var(--split-x) - 4px); height: calc(var(--split-y) - 4px); }
+  .slot[data-pos="bl"] { left: 0; top: calc(var(--split-y) + 4px); width: calc(var(--split-x) - 4px); height: calc(100% - var(--split-y) - 4px); }
+  .slot[data-pos="br"] { left: calc(var(--split-x) + 4px); top: calc(var(--split-y) + 4px); width: calc(100% - var(--split-x) - 4px); height: calc(100% - var(--split-y) - 4px); }
+
+  .slot-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 0.5px solid rgba(0,0,0,0.06);
+    flex-shrink: 0;
+  }
+
+  .slot-bar input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: #f5f5f7;
+    border-radius: 980px;
+    padding: 7px 12px;
+    font-size: 12px;
+    color: #1d1d1f;
+    outline: none;
+  }
+
+  .slot-bar input::placeholder { color: #a1a1a6; }
+
+  .slot-bar button {
+    border: none;
+    background: #0071e3;
+    color: #fff;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .slot-bar button i { font-size: 15px; }
+
+  .slot-body {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+  }
+
+  .slot-body iframe {
+    width: 100%; height: 100%; border: 0; display: block;
+  }
+
+  .slot-placeholder {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; color: #a1a1a6; text-align: center; padding: 16px; font-size: 13px;
+  }
+
+  .slot-placeholder i { font-size: 26px; }
+
+  .divider {
+    position: absolute;
+    background: transparent;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .divider::after {
+    content: "";
+    background: rgba(0,0,0,0.12);
+    border-radius: 4px;
+  }
+
+  .divider-v {
+    left: calc(var(--split-x) - 5px);
+    top: 0;
+    width: 10px;
+    height: 100%;
+    cursor: col-resize;
+  }
+  .divider-v::after { width: 4px; height: 44px; }
+
+  .divider-h {
+    left: 0;
+    top: calc(var(--split-y) - 5px);
+    width: 100%;
+    height: 10px;
+    cursor: row-resize;
+  }
+  .divider-h::after { width: 44px; height: 4px; }
+
+  .divider:active::after,
+  .divider:hover::after { background: rgba(0,113,227,0.5); }
+
+  /* prevent iframes from swallowing drag events while resizing */
+  .stage.resizing .slot-body iframe { pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a class="back" href="../index.html"><i class="ti ti-chevron-left" aria-hidden="true"></i> Life Commander</a>
+</div>
+
+<div class="stage" id="stage">
+  <div class="slot" data-pos="tl" data-idx="0"></div>
+  <div class="slot" data-pos="tr" data-idx="1"></div>
+  <div class="slot" data-pos="bl" data-idx="2"></div>
+  <div class="slot" data-pos="br" data-idx="3"></div>
+  <div class="divider divider-v" id="dividerV"></div>
+  <div class="divider divider-h" id="dividerH"></div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'multivista-links';
+  const SPLIT_KEY = 'multivista-split';
+
+  function loadSaved(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || ['', '', '', '']; }
+    catch(e){ return ['', '', '', '']; }
+  }
+  function saveLinks(links){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(links)); } catch(e){}
+  }
+  function loadSplit(){
+    try { return JSON.parse(localStorage.getItem(SPLIT_KEY)) || { x: 50, y: 50 }; }
+    catch(e){ return { x: 50, y: 50 }; }
+  }
+  function saveSplit(split){
+    try { localStorage.setItem(SPLIT_KEY, JSON.stringify(split)); } catch(e){}
+  }
+
+  function normalizeUrl(value){
+    value = value.trim();
+    if (!value) return '';
+    if (!/^https?:\/\//i.test(value)) value = 'https://' + value;
+    return value;
+  }
+
+  const links = loadSaved();
+  const stage = document.getElementById('stage');
+
+  stage.querySelectorAll('.slot').forEach(slot => {
+    const idx = slot.dataset.idx;
+    slot.innerHTML = `
+      <div class="slot-bar">
+        <input type="text" placeholder="Incolla un indirizzo (es. meteo.it)" value="${links[idx] || ''}" data-idx="${idx}">
+        <button data-idx="${idx}"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+      </div>
+      <div class="slot-body" id="slotBody${idx}">
+        <div class="slot-placeholder"><i class="ti ti-layout-grid-add" aria-hidden="true"></i><span>Incolla un indirizzo qui sopra</span></div>
+      </div>
+    `;
+  });
+
+  function openSlot(idx, url){
+    const body = document.getElementById('slotBody' + idx);
+    if (!url){
+      body.innerHTML = `<div class="slot-placeholder"><i class="ti ti-layout-grid-add" aria-hidden="true"></i><span>Incolla un indirizzo qui sopra</span></div>`;
+      return;
+    }
+    body.innerHTML = `<iframe src="${url}" title="Riquadro ${Number(idx) + 1}"></iframe>`;
+  }
+
+  stage.querySelectorAll('input').forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') triggerOpen(input.dataset.idx);
+    });
+  });
+  stage.querySelectorAll('.slot-bar button').forEach(btn => {
+    btn.addEventListener('click', () => triggerOpen(btn.dataset.idx));
+  });
+
+  function triggerOpen(idx){
+    const input = stage.querySelector(`input[data-idx="${idx}"]`);
+    const url = normalizeUrl(input.value);
+    input.value = url;
+    links[idx] = url;
+    saveLinks(links);
+    openSlot(idx, url);
+  }
+
+  links.forEach((url, idx) => { if (url) openSlot(idx, url); });
+
+  // --- Resizing ---
+  const split = loadSplit();
+  stage.style.setProperty('--split-x', split.x + '%');
+  stage.style.setProperty('--split-y', split.y + '%');
+
+  const dividerV = document.getElementById('dividerV');
+  const dividerH = document.getElementById('dividerH');
+  const MIN = 12, MAX = 88;
+
+  function clamp(v){ return Math.max(MIN, Math.min(MAX, v)); }
+
+  function startDrag(axis){
+    stage.classList.add('resizing');
+    function onMove(e){
+      const point = e.touches ? e.touches[0] : e;
+      const rect = stage.getBoundingClientRect();
+      if (axis === 'x'){
+        let pct = ((point.clientX - rect.left) / rect.width) * 100;
+        split.x = clamp(pct);
+        stage.style.setProperty('--split-x', split.x + '%');
+      } else {
+        let pct = ((point.clientY - rect.top) / rect.height) * 100;
+        split.y = clamp(pct);
+        stage.style.setProperty('--split-y', split.y + '%');
+      }
+    }
+    function onUp(){
+      stage.classList.remove('resizing');
+      saveSplit(split);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: true });
+    window.addEventListener('touchend', onUp);
+  }
+
+  dividerV.addEventListener('mousedown', () => startDrag('x'));
+  dividerV.addEventListener('touchstart', () => startDrag('x'), { passive: true });
+  dividerH.addEventListener('mousedown', () => startDrag('y'));
+  dividerH.addEventListener('touchstart', () => startDrag('y'), { passive: true });
+</script>
+
+</body>
+</html>

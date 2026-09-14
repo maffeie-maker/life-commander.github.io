@@ -13,12 +13,13 @@
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     background: #f5f5f7;
     color: #1d1d1f;
+    overflow: hidden;
   }
 
   .top-bar {
     display: flex;
     align-items: center;
-    padding: 14px 20px;
+    padding: 14px 20px 6px;
   }
 
   .back {
@@ -26,20 +27,28 @@
     font-size: 13px; color: #0071e3; text-decoration: none;
   }
 
-  .columns {
-    display: flex;
-    gap: 14px;
-    height: calc(100vh - 56px);
-    padding: 0 14px 14px;
+  .stage {
+    position: relative;
+    height: calc(100vh - 50px);
+    margin: 0 14px 14px;
+    --split-1: 26%;
+    --split-2: 74%;
   }
 
   .col {
+    position: absolute;
+    top: 0;
+    height: 100%;
     background: #fff;
     border-radius: 28px;
     border: 0.5px solid rgba(0,0,0,0.06);
     box-shadow: 0 10px 30px rgba(0,0,0,0.16);
     overflow: hidden;
   }
+
+  .col[data-pos="left"]  { left: 0; width: calc(var(--split-1) - 7px); }
+  .col[data-pos="mid"]   { left: calc(var(--split-1) + 7px); width: calc(var(--split-2) - var(--split-1) - 14px); }
+  .col[data-pos="right"] { left: calc(var(--split-2) + 7px); width: calc(100% - var(--split-2) - 7px); }
 
   .col iframe {
     width: 100%;
@@ -48,13 +57,38 @@
     display: block;
   }
 
-  .col-meteo { flex: 0 0 26%; }
-  .col-tvradio { flex: 1 1 48%; }
-  .col-news { flex: 0 0 26%; }
+  .divider {
+    position: absolute;
+    top: 0;
+    width: 14px;
+    height: 100%;
+    z-index: 20;
+    cursor: col-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .divider::after {
+    content: "";
+    width: 4px;
+    height: 44px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.12);
+  }
+
+  .divider:hover::after,
+  .divider:active::after { background: rgba(0,113,227,0.5); }
+
+  .divider[data-which="1"] { left: calc(var(--split-1) - 7px); }
+  .divider[data-which="2"] { left: calc(var(--split-2) - 7px); }
+
+  .stage.resizing .col iframe { pointer-events: none; }
 
   @media (max-width: 900px) {
-    .columns { flex-direction: column; height: auto; }
-    .col { flex: none !important; height: 70vh; }
+    .stage { height: auto; overflow: visible; }
+    .col, .divider { position: static !important; width: 100% !important; height: 60vh; margin-bottom: 14px; }
+    .divider { display: none; }
   }
 </style>
 </head>
@@ -64,17 +98,70 @@
   <a class="back" href="../index.html"><i class="ti ti-chevron-left" aria-hidden="true"></i> Life Commander</a>
 </div>
 
-<div class="columns">
-  <div class="col col-meteo">
-    <iframe src="meteo-posizione.html" title="Meteo"></iframe>
-  </div>
-  <div class="col col-tvradio">
-    <iframe src="tv-radio.html" title="TV + Radio"></iframe>
-  </div>
-  <div class="col col-news">
-    <iframe src="world-news.html" title="World News"></iframe>
-  </div>
+<div class="stage" id="stage">
+  <div class="col" data-pos="left"><iframe src="meteo-posizione.html" title="Meteo"></iframe></div>
+  <div class="col" data-pos="mid"><iframe src="tv-radio.html" title="TV + Radio"></iframe></div>
+  <div class="col" data-pos="right"><iframe src="world-news.html" title="World News"></iframe></div>
+  <div class="divider" data-which="1" id="divider1"></div>
+  <div class="divider" data-which="2" id="divider2"></div>
 </div>
+
+<script>
+  const SPLIT_KEY = 'dashboard-split';
+  const MIN_GAP = 10;
+
+  function loadSplit(){
+    try { return JSON.parse(localStorage.getItem(SPLIT_KEY)) || { s1: 26, s2: 74 }; }
+    catch(e){ return { s1: 26, s2: 74 }; }
+  }
+  function saveSplit(split){
+    try { localStorage.setItem(SPLIT_KEY, JSON.stringify(split)); } catch(e){}
+  }
+
+  const stage = document.getElementById('stage');
+  const split = loadSplit();
+  stage.style.setProperty('--split-1', split.s1 + '%');
+  stage.style.setProperty('--split-2', split.s2 + '%');
+
+  function apply(){
+    stage.style.setProperty('--split-1', split.s1 + '%');
+    stage.style.setProperty('--split-2', split.s2 + '%');
+  }
+
+  function startDrag(which){
+    stage.classList.add('resizing');
+    function onMove(e){
+      const point = e.touches ? e.touches[0] : e;
+      const rect = stage.getBoundingClientRect();
+      let pct = ((point.clientX - rect.left) / rect.width) * 100;
+      if (which === 1){
+        pct = Math.max(8, Math.min(split.s2 - MIN_GAP, pct));
+        split.s1 = pct;
+      } else {
+        pct = Math.max(split.s1 + MIN_GAP, Math.min(92, pct));
+        split.s2 = pct;
+      }
+      apply();
+    }
+    function onUp(){
+      stage.classList.remove('resizing');
+      saveSplit(split);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: true });
+    window.addEventListener('touchend', onUp);
+  }
+
+  document.getElementById('divider1').addEventListener('mousedown', () => startDrag(1));
+  document.getElementById('divider1').addEventListener('touchstart', () => startDrag(1), { passive: true });
+  document.getElementById('divider2').addEventListener('mousedown', () => startDrag(2));
+  document.getElementById('divider2').addEventListener('touchstart', () => startDrag(2), { passive: true });
+</script>
 
 </body>
 </html>
