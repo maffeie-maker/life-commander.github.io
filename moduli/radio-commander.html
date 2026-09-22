@@ -86,6 +86,75 @@
   .add-note{ font-size:11px; color:var(--text-secondary); margin:0 0 20px; }
   .add-note a{ color:#0071e3; }
 
+  .section-title{
+    font-size: 13px; font-weight: 600; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.04em; margin: 0;
+  }
+
+  .schedule-section{
+    margin-top: 36px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    padding: 18px 18px 16px;
+  }
+
+  .schedule-header{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;
+  }
+
+  .switch{ position:relative; display:inline-block; width:44px; height:26px; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch-track{
+    position:absolute; inset:0; background:#d1d1d6; border-radius:999px; cursor:pointer;
+    transition: background 0.2s ease;
+  }
+  .switch-thumb{
+    position:absolute; left:3px; top:3px; width:20px; height:20px; border-radius:50%;
+    background:#fff; box-shadow:0 2px 4px rgba(0,0,0,0.25); transition: transform 0.2s ease;
+  }
+  .switch input:checked + .switch-track{ background: var(--accent); }
+  .switch input:checked + .switch-track .switch-thumb{ transform: translateX(18px); }
+
+  .schedule-status{
+    font-size:12px; color:var(--text-secondary); margin: 0 0 14px;
+  }
+
+  .schedule-rows{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+
+  .schedule-row{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    background: rgba(255,255,255,0.6); border-radius:14px; padding:8px 10px;
+  }
+
+  .schedule-row input[type="time"]{
+    border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:5px 6px;
+    font-size:12px; color:var(--text-primary); background:#fff; width: 84px;
+  }
+
+  .schedule-row .row-sep{ font-size:12px; color:var(--text-secondary); }
+
+  .schedule-row select{
+    flex:1; min-width:110px;
+    border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:5px 8px;
+    font-size:12px; color:var(--text-primary); background:#fff;
+  }
+
+  .schedule-row .row-remove{
+    width:22px; height:22px; border-radius:50%; background:rgba(192,57,43,0.12);
+    color:var(--accent); border:none; cursor:pointer; font-size:11px; flex-shrink:0;
+  }
+  .schedule-row .row-remove:hover{ background: var(--accent); color:#fff; }
+
+  .add-slot-btn{
+    border:none; background: rgba(0,113,227,0.1); color:#0071e3; font-size:12px; font-weight:600;
+    border-radius:980px; padding:7px 16px; cursor:pointer;
+  }
+  .add-slot-btn:hover{ background: rgba(0,113,227,0.18); }
+
   .card-remove{
     position:absolute;
     top:8px; right:8px;
@@ -412,6 +481,19 @@
   <p class="add-note">Elenco da <a href="https://www.radio-browser.info" target="_blank" rel="noopener">Radio Browser</a>: catalogo comunitario, alcune stazioni potrebbero non essere sempre attive.</p>
 
   <div class="grid" id="grid"></div>
+
+  <div class="schedule-section">
+    <div class="schedule-header">
+      <p class="section-title">Palinsesto automatico</p>
+      <label class="switch">
+        <input type="checkbox" id="scheduleToggle">
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+      </label>
+    </div>
+    <p class="schedule-status" id="scheduleStatus">Palinsesto disattivato</p>
+    <div class="schedule-rows" id="scheduleRows"></div>
+    <button class="add-slot-btn" id="addSlotBtn">+ Fascia oraria</button>
+  </div>
 </div>
 
 <div class="now-playing" id="nowPlaying">
@@ -739,11 +821,148 @@
     customStations.push(newSt);
     saveCustomStations(customStations);
     buildCards();
+    if (typeof renderScheduleRows === 'function') renderScheduleRows();
     loadStation(newSt);
   });
 
   buildCards();
   updateVolumeUI(audio.volume, audio.muted);
+
+  // --- Palinsesto automatico ---
+  const SCHEDULE_KEY = 'radiocommander-schedule';
+  const SCHEDULE_ON_KEY = 'radiocommander-schedule-on';
+
+  const scheduleToggle = document.getElementById('scheduleToggle');
+  const scheduleStatus = document.getElementById('scheduleStatus');
+  const scheduleRows = document.getElementById('scheduleRows');
+  const addSlotBtn = document.getElementById('addSlotBtn');
+
+  function loadSchedule(){
+    try { return JSON.parse(localStorage.getItem(SCHEDULE_KEY)) || []; }
+    catch(e){ return []; }
+  }
+  function saveSchedule(){ try { localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedule)); } catch(e){} }
+  function loadScheduleOn(){ return localStorage.getItem(SCHEDULE_ON_KEY) === '1'; }
+  function saveScheduleOn(v){ try { localStorage.setItem(SCHEDULE_ON_KEY, v ? '1' : '0'); } catch(e){} }
+
+  let schedule = loadSchedule();
+  let scheduleTimer = null;
+  let lastAutoStationId = null;
+
+  function renderScheduleRows(){
+    scheduleRows.innerHTML = '';
+    if (schedule.length === 0){
+      scheduleRows.innerHTML = `<p style="font-size:12px;color:var(--text-secondary);margin:0;">Nessuna fascia oraria impostata — aggiungine una qui sotto.</p>`;
+      return;
+    }
+    schedule.forEach(slot => {
+      const row = document.createElement('div');
+      row.className = 'schedule-row';
+      const options = allStations().map(s =>
+        `<option value="${s.id}" ${s.id === slot.stationId ? 'selected' : ''}>${s.name}</option>`
+      ).join('');
+      row.innerHTML = `
+        <input type="time" value="${slot.start}" data-field="start" data-id="${slot.id}">
+        <span class="row-sep">–</span>
+        <input type="time" value="${slot.end}" data-field="end" data-id="${slot.id}">
+        <select data-field="station" data-id="${slot.id}">${options}</select>
+        <button class="row-remove" data-id="${slot.id}">✕</button>
+      `;
+      scheduleRows.appendChild(row);
+    });
+
+    scheduleRows.querySelectorAll('input, select').forEach(el => {
+      el.addEventListener('change', (e) => {
+        const id = e.target.dataset.id;
+        const field = e.target.dataset.field;
+        const slot = schedule.find(s => s.id === id);
+        if (!slot) return;
+        if (field === 'station') slot.stationId = e.target.value;
+        else slot[field] = e.target.value;
+        saveSchedule();
+        checkSchedule();
+      });
+    });
+    scheduleRows.querySelectorAll('.row-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        schedule = schedule.filter(s => s.id !== btn.dataset.id);
+        saveSchedule();
+        renderScheduleRows();
+        checkSchedule();
+      });
+    });
+  }
+
+  addSlotBtn.addEventListener('click', () => {
+    const defaultStation = allStations()[0];
+    schedule.push({
+      id: 'slot-' + Date.now(),
+      start: '07:00',
+      end: '09:00',
+      stationId: defaultStation ? defaultStation.id : ''
+    });
+    saveSchedule();
+    renderScheduleRows();
+  });
+
+  function timeToMinutes(t){
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function findCurrentSlot(){
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    return schedule.find(slot => {
+      const s = timeToMinutes(slot.start);
+      const e = timeToMinutes(slot.end);
+      if (s === e) return false;
+      if (s < e) return nowMin >= s && nowMin < e;
+      // fascia che attraversa la mezzanotte (es. 23:00–01:00)
+      return nowMin >= s || nowMin < e;
+    });
+  }
+
+  function checkSchedule(){
+    if (!scheduleToggle.checked){
+      scheduleStatus.textContent = 'Palinsesto disattivato';
+      return;
+    }
+    const slot = findCurrentSlot();
+    if (!slot){
+      scheduleStatus.textContent = 'Palinsesto attivo — nessuna fascia oraria in corso ora';
+      lastAutoStationId = null;
+      return;
+    }
+    const station = allStations().find(s => s.id === slot.stationId);
+    if (!station){
+      scheduleStatus.textContent = 'Palinsesto attivo — la stazione di questa fascia non è più disponibile';
+      return;
+    }
+    scheduleStatus.textContent = `Palinsesto attivo — ora: ${station.name} (fino alle ${slot.end})`;
+    if (lastAutoStationId !== station.id || !currentStation || currentStation.id !== station.id || audio.paused){
+      lastAutoStationId = station.id;
+      loadStation(station);
+    }
+  }
+
+  scheduleToggle.addEventListener('change', () => {
+    saveScheduleOn(scheduleToggle.checked);
+    if (scheduleToggle.checked){
+      checkSchedule();
+      scheduleTimer = setInterval(checkSchedule, 30000);
+    } else {
+      if (scheduleTimer) clearInterval(scheduleTimer);
+      scheduleStatus.textContent = 'Palinsesto disattivato';
+    }
+  });
+
+  renderScheduleRows();
+  if (loadScheduleOn()){
+    scheduleToggle.checked = true;
+    checkSchedule();
+    scheduleTimer = setInterval(checkSchedule, 30000);
+  }
 </script>
 
 </body>
