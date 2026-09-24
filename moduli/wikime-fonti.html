@@ -83,12 +83,17 @@ const fmt = iso => iso ? new Date(iso).toLocaleDateString($('#lang').value === '
 function render() {
   const out = $('#out');
   if (!last) return;
-  const g = last.gruppi.filter(x => (!$('#conf').checked || x.conferme >= 2) && ($('#poco').checked || x.pertinente));
+  const base = last.gruppi.filter(x => !$('#conf').checked || x.conferme >= 2);
+  const pert = base.filter(x => x.pertinente);
+  const tutti = $('#poco').checked || pert.length < 3;
+  const g = tutti ? base : pert;
+  const avviso = !$('#poco').checked && pert.length < 3 && base.length > pert.length
+    ? '<p class="msg" style="margin-top:8px">Pochi risultati con tutte le parole: mostro anche quelli che ne contengono solo alcune.</p>' : '';
   const nr = last.non_raggiunte || [], det = last.dettagli || {};
   const nomi = nr.map(n => n + (det[n] ? ' (' + det[n] + ')' : '')).join(', ');
-  const nota = `<p class="msg" style="margin-top:12px">Cercato tra ${last.articoli_letti} articoli recenti di ${last.fonti_ok} fonti su ${last.fonti_totali}.` +
-    (nr.length ? ` Non hanno risposto: ${esc(nomi)}. I risultati potrebbero essere sbilanciati.` : '') + '</p>';
-  if (!g.length) { out.innerHTML = nota + '<p class="msg">Nessun risultato per questa ricerca. Prova meno parole o un periodo più ampio.</p>'; return; }
+  const nota = `<p class="msg" style="margin-top:12px">Cercato tra ${last.articoli_letti} articoli${last.giorni_coperti ? ' degli ultimi ~' + last.giorni_coperti + ' giorni' : ' recenti'} di ${last.fonti_ok} fonti su ${last.fonti_totali}. I feed non conservano gli articoli più vecchi.` +
+    (nr.length ? ` Non hanno risposto: ${esc(nomi)}. I risultati potrebbero essere sbilanciati.` : '') + '</p>' + avviso;
+  if (!g.length) { out.innerHTML = nota + '<p class="msg">Nessun risultato per questa ricerca. Prova meno parole.</p>'; return; }
   out.innerHTML = nota + g.map(x => {
     const f = x.fonti[0];
     return `<div class="card"><a class="t" href="${esc(f.url)}" target="_blank" rel="noopener">${esc(x.titolo)}</a>
