@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WikiME Fonti</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+:root{--bg:#f5f5f7;--card:#fff;--ink:#1d1d1f;--mut:#6e6e73;--line:#e5e5ea;--blue:#0071e3;--ok:#1a7f37}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif}
+main{max-width:820px;margin:0 auto;padding:32px 20px 60px}
+h1{font-size:34px;letter-spacing:-.02em;margin:0 0 4px}
+.sub{color:var(--mut);margin:0 0 20px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.search{flex:1 1 300px;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:0 14px}
+.search:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,113,227,.18)}
+.search input{flex:1;border:0;outline:0;background:none;font:inherit;font-size:17px;padding:14px 0}
+select,button{font:inherit}
+select{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px}
+.go{background:var(--blue);color:#fff;border:0;border-radius:12px;padding:12px 20px;font-weight:600;cursor:pointer}
+.go:hover{background:#0077ed}
+.opts{display:flex;gap:16px;align-items:center;margin:12px 0;color:var(--mut);font-size:14px;flex-wrap:wrap}
+.legend{display:flex;gap:14px;flex-wrap:wrap}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.l2{background:var(--blue)}.l3{background:#a1a1a6}
+.ufficiali{background:#fff;border-radius:16px;padding:14px 18px;margin:14px 0}
+.ufficiali b{font-size:13px;color:var(--mut)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:13px;color:var(--ink);text-decoration:none;display:inline-flex;align-items:center}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+.card{background:#fff;border-radius:16px;padding:16px 20px;margin-top:12px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.t{font-size:17px;font-weight:600;color:var(--ink);text-decoration:none}
+.t:hover{color:var(--blue)}
+.meta{display:flex;gap:12px;align-items:center;margin:6px 0 2px;font-size:13px;color:var(--mut)}
+.badge{padding:2px 9px;border-radius:999px;font-weight:600}
+.ok{background:#e6f4ea;color:var(--ok)}.solo{background:#efeff4;color:var(--mut)}
+.msg{color:var(--mut);margin-top:24px}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+  <h1>WikiME Fonti</h1>
+  <p class="sub">Cerca solo nelle fonti della tua lista e mostra quali notizie sono confermate da più testate indipendenti.</p>
+  <div class="bar">
+    <div class="search"><i class="ti ti-search" style="color:var(--mut)"></i>
+      <input id="q" type="search" placeholder="Es. legge elettorale, sondaggi, affluenza" autocomplete="off" autofocus></div>
+    <select id="lang" aria-label="Lingua"><option value="it">Italiano</option><option value="en">English</option></select>
+    <select id="per" aria-label="Periodo"><option value="1d">Ultimo giorno</option><option value="7d">Ultima settimana</option><option value="30d" selected>Ultimo mese</option><option value="1y">Ultimo anno</option></select>
+    <button class="go" id="go">Cerca</button>
+  </div>
+  <div class="opts">
+    <label><input type="checkbox" id="conf"> Solo notizie confermate da più fonti</label>
+    <label><input type="checkbox" id="poco"> Includi risultati poco pertinenti</label>
+    <span class="legend"><span><i class="dot l2"></i>Agenzia di stampa</span><span><i class="dot l3"></i>Testata</span></span>
+  </div>
+  <div class="ufficiali"><b>Fonti ufficiali (da consultare direttamente)</b>
+    <div class="chips">
+      <a class="chip" href="https://elezioni.interno.gov.it" target="_blank" rel="noopener">Ministero dell'Interno · Elezioni</a>
+      <a class="chip" href="https://www.camera.it" target="_blank" rel="noopener">Camera</a>
+      <a class="chip" href="https://www.senato.it" target="_blank" rel="noopener">Senato</a>
+      <a class="chip" href="https://www.gazzettaufficiale.it" target="_blank" rel="noopener">Gazzetta Ufficiale</a>
+      <a class="chip" href="https://www.sondaggipoliticoelettorali.it" target="_blank" rel="noopener">Sondaggi ufficiali</a>
+    </div>
+    <b style="display:block;margin-top:12px">Fact-checking (da consultare direttamente)</b>
+    <div class="chips">
+      <a class="chip" href="https://pagellapolitica.it" target="_blank" rel="noopener">Pagella Politica</a>
+      <a class="chip" href="https://facta.news" target="_blank" rel="noopener">Facta</a>
+    </div>
+  </div>
+  <div id="out"></div>
+</main>
+<script>
+// Incolla qui l'indirizzo del tuo Worker dopo averlo pubblicato
+const WORKER = 'https://wikime-fonti.TUOACCOUNT.workers.dev';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let last = null;
+
+const fmt = iso => iso ? new Date(iso).toLocaleDateString($('#lang').value === 'en' ? 'en-GB' : 'it-IT', {day: 'numeric', month: 'short', year: 'numeric'}) : '';
+
+function render() {
+  const out = $('#out');
+  if (!last) return;
+  const g = last.gruppi.filter(x => (!$('#conf').checked || x.conferme >= 2) && ($('#poco').checked || x.pertinente));
+  const nr = last.non_raggiunte || [], det = last.dettagli || {};
+  const nomi = nr.map(n => n + (det[n] ? ' (' + det[n] + ')' : '')).join(', ');
+  const nota = `<p class="msg" style="margin-top:12px">Cercato tra ${last.articoli_letti} articoli recenti di ${last.fonti_ok} fonti su ${last.fonti_totali}.` +
+    (nr.length ? ` Non hanno risposto: ${esc(nomi)}. I risultati potrebbero essere sbilanciati.` : '') + '</p>';
+  if (!g.length) { out.innerHTML = nota + '<p class="msg">Nessun risultato per questa ricerca. Prova meno parole o un periodo più ampio.</p>'; return; }
+  out.innerHTML = nota + g.map(x => {
+    const f = x.fonti[0];
+    return `<div class="card"><a class="t" href="${esc(f.url)}" target="_blank" rel="noopener">${esc(x.titolo)}</a>
+      <div class="meta"><span class="badge ${x.conferme >= 2 ? 'ok' : 'solo'}">${x.conferme >= 2 ? 'Confermata da ' + x.conferme + ' fonti' : 'Fonte singola'}</span><span>${fmt(x.data)}</span></div>
+      <div class="chips">${x.fonti.map(s => `<a class="chip" href="${esc(s.url)}" target="_blank" rel="noopener"><i class="dot l${s.liv}"></i>${esc(s.nome)}${s.fc ? ' · fact-checking' : ''}</a>`).join('')}</div></div>`;
+  }).join('');
+}
+
+async function cerca() {
+  const q = $('#q').value.trim();
+  if (!q) return;
+  $('#out').innerHTML = '<p class="msg">Cerco nelle fonti…</p>';
+  try {
+    const r = await fetch(`${WORKER}/?q=${encodeURIComponent(q)}&lang=${$('#lang').value}&per=${$('#per').value}`);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.errore || r.status);
+    last = d; render();
+  } catch (e) {
+    $('#out').innerHTML = `<p class="msg">Non riesco a contattare il Worker (${esc(e.message)}). Controlla l'indirizzo WORKER nel file.</p>`;
+  }
+}
+$('#go').onclick = cerca;
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') cerca(); });
+$('#conf').onchange = render;
+$('#poco').onchange = render;
+</script>
+</body>
+</html>

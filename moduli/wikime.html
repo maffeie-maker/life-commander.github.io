@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WikiME</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+:root{--bg:#f5f5f7;--card:#fff;--ink:#1d1d1f;--mut:#6e6e73;--line:#e5e5ea;--blue:#0071e3;--r:18px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:32px 20px 60px}
+h1{font-size:34px;letter-spacing:-.02em;margin:0 0 4px}
+.sub{color:var(--mut);margin:0 0 22px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.search{flex:1 1 320px;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:0 14px}
+.search:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,113,227,.18)}
+.search input{flex:1;border:0;outline:0;background:none;font:inherit;font-size:17px;padding:14px 0}
+button{font:inherit;cursor:pointer}
+.go{background:var(--blue);color:#fff;border:0;border-radius:12px;padding:12px 20px;font-weight:600}
+.go:hover{background:#0077ed}
+.seg{display:flex;background:#e8e8ed;border-radius:10px;padding:2px}
+.seg button{border:0;background:none;padding:8px 14px;border-radius:8px;color:var(--mut);font-weight:600}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px;color:var(--ink);text-decoration:none}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;margin-top:24px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:18px}
+.card{background:var(--card);border-radius:var(--r);padding:20px 22px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.card h2{font-size:13px;margin:0 0 12px;color:var(--mut);font-weight:600;display:flex;align-items:center;gap:6px}
+.title{font-size:26px;font-weight:700;letter-spacing:-.01em;margin:0}
+.desc{color:var(--mut);margin:2px 0 14px}
+.lead{background:#f0f6ff;border-radius:12px;padding:12px 14px;margin:0 0 14px;font-size:16px}
+.body p{margin:0 0 10px;max-width:70ch}
+.thumb{float:right;width:150px;border-radius:12px;margin:0 0 10px 16px}
+.more{background:none;border:0;color:var(--blue);padding:0;font-weight:600}
+.src{display:inline-flex;gap:4px;align-items:center;color:var(--blue);text-decoration:none;font-weight:600;margin-top:8px}
+.item{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.item:first-of-type{border-top:0;padding-top:0}
+.item img{width:38px;height:56px;object-fit:cover;border-radius:5px;background:#eee;flex:none}
+.item a{color:var(--ink);font-weight:600;text-decoration:none}
+.item a:hover{color:var(--blue)}
+.item small{display:block;color:var(--mut)}
+.muted{color:var(--mut)}
+.skel{height:14px;border-radius:7px;background:linear-gradient(90deg,#eee,#f7f7f7,#eee);background-size:200% 100%;animation:s 1.2s infinite;margin:8px 0}
+@keyframes s{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.skel{animation:none}}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+  <h1>WikiME</h1>
+  <p class="sub">Scrivi un argomento: raccolgo in una sola scheda le informazioni dalle fonti aperte.</p>
+  <div class="bar">
+    <div class="search"><i class="ti ti-search muted"></i>
+      <input id="q" type="search" placeholder="Es. Guglielmo Marconi, fotosintesi, Rinascimento" autocomplete="off" autofocus>
+    </div>
+    <div class="seg" role="group" aria-label="Lingua">
+      <button id="l-it" class="on">Italiano</button><button id="l-en">English</button>
+    </div>
+    <button class="go" id="go">Cerca</button>
+  </div>
+  <div class="chips" id="recent"></div>
+  <div class="grid" id="out" hidden>
+    <div class="col">
+      <div class="card" id="c-wiki"></div>
+      <div class="card" id="c-news"></div>
+      <div class="card" id="c-idx"></div>
+    </div>
+    <div class="col">
+      <div class="card" id="c-rel"></div>
+      <div class="card" id="c-ol"></div>
+      <div class="card" id="c-gb"></div>
+      <div class="card" id="c-ws"></div>
+    </div>
+  </div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const enc = encodeURIComponent;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let lang = 'it';
+const T = {
+  it: {wiki:'Scheda', idx:'Indice degli argomenti', rel:'Argomenti correlati', ol:'Libri (Open Library)', gb:'Libri (Google Books)', ws:'Testi liberi (Wikisource)', news:'Notizie recenti', none:'Nessun risultato.', fail:'Fonte non raggiungibile.', more:'Leggi di più', less:'Riduci', open:'Apri su Wikipedia', skip:['Note','Bibliografia','Collegamenti esterni','Voci correlate','Altri progetti','Riferimenti','Filmografia']},
+  en: {wiki:'Overview', idx:'Topic outline', rel:'Related topics', ol:'Books (Open Library)', gb:'Books (Google Books)', ws:'Free texts (Wikisource)', news:'Latest news', none:'No results.', fail:'Source unreachable.', more:'Read more', less:'Show less', open:'Open on Wikipedia', skip:['Notes','References','External links','See also','Further reading','Bibliography']}
+};
+const j = async u => { const r = await fetch(u); if (!r.ok) throw new Error(r.status); return r.json(); };
+const skel = () => '<div class="skel" style="width:60%"></div><div class="skel"></div><div class="skel" style="width:85%"></div>';
+const head = (icon, t) => `<h2><i class="ti ti-${icon}"></i>${t}</h2>`;
+
+function slot(id, icon, title, promise, render, hide) {
+  const el = $('#' + id);
+  el.hidden = false;
+  el.innerHTML = head(icon, title) + skel();
+  promise.then(d => {
+    const h = render(d);
+    if (!h && hide) { el.hidden = true; return; }
+    el.innerHTML = head(icon, title) + (h || `<span class="muted">${T[lang].none}</span>`);
+  }).catch(err => {
+    el.innerHTML = head(icon, title) + `<span class="muted">${T[lang].fail} (${esc(err.message)})</span>` +
+      (id === 'c-gb' ? ' <a class="more" href="#" id="gbKey">Imposta chiave</a>' : '');
+  });
+}
+
+const wpUrl = t => `https://${lang}.wikipedia.org/wiki/${enc(t.replace(/ /g, '_'))}`;
+
+async function wikiData(q) {
+  const api = `https://${lang}.wikipedia.org/w/api.php?format=json&origin=*&`;
+  const d = await j(api + `action=query&generator=search&gsrsearch=${enc(q)}&gsrlimit=8&prop=extracts|pageimages|description&exintro=1&explaintext=1&exlimit=max&piprop=thumbnail&pithumbsize=300&redirects=1`);
+  const pages = Object.values(d.query?.pages || {}).sort((a, b) => a.index - b.index);
+  if (!pages.length) return null;
+  let secs = [];
+  try { secs = (await j(api + `action=parse&page=${enc(pages[0].title)}&prop=sections&redirects=1`)).parse.sections; } catch (e) {}
+  return {top: pages[0], others: pages.slice(1), secs};
+}
+
+function renderWiki(d) {
+  if (!d) return '';
+  const p = d.top, t = T[lang];
+  const paras = (p.extract || '').split('\n').filter(x => x.trim());
+  const sentences = (paras[0] || '').split(/(?<=[.!?])\s+(?=[A-ZÀ-Ý0-9"«])/);
+  const lead = sentences.slice(0, 2).join(' ');
+  const firstRest = sentences.slice(2).join(' ');
+  const shown = [firstRest, paras[1]].filter(Boolean), rest = paras.slice(2);
+  return `<p class="title">${esc(p.title)}</p>
+    <p class="desc">${esc(p.description || '')}</p>
+    ${lead ? `<p class="lead">${esc(lead)}</p>` : ''}
+    <div class="body">${p.thumbnail ? `<img class="thumb" src="${esc(p.thumbnail.source)}" alt="">` : ''}
+      ${shown.map(x => `<p>${esc(x)}</p>`).join('')}
+      <div id="rest" hidden>${rest.map(x => `<p>${esc(x)}</p>`).join('')}</div>
+      ${rest.length ? `<button class="more" id="moreBtn">${t.more}</button>` : ''}
+    </div>
+    <a class="src" href="${wpUrl(p.title)}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i>${t.open}</a>`;
+}
+
+function renderIdx(d) {
+  if (!d) return '';
+  const skip = T[lang].skip;
+  const s = d.secs.filter(x => x.toclevel === 1 && !skip.includes(x.line.replace(/<[^>]+>/g, '')));
+  if (!s.length) return '';
+  return `<div class="chips" style="margin:0">${s.slice(0, 16).map(x =>
+    `<a class="chip" target="_blank" rel="noopener" href="${wpUrl(d.top.title)}#${enc(x.anchor)}">${x.line.replace(/<[^>]+>/g, '')}</a>`).join('')}</div>`;
+}
+
+function renderRel(d) {
+  if (!d || !d.others.length) return '';
+  return `<div class="chips" style="margin:0">${d.others.map(x =>
+    `<a class="chip" href="#" data-q="${esc(x.title)}">${esc(x.title)}</a>`).join('')}</div>`;
+}
+
+const book = (img, href, title, sub) => `<div class="item">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : ''}
+  <div><a href="${esc(href)}" target="_blank" rel="noopener">${esc(title)}</a><small>${esc(sub)}</small></div></div>`;
+
+let KW = [];
+const kwOf = t => [...new Set(t.toLowerCase().split(/[^a-zà-ÿ0-9]+/).filter(w => w.length >= 5 || /^\d{4}$/.test(w)))];
+const score = t => { t = (t || '').toLowerCase(); return KW.filter(k => t.includes(k)).length; };
+const pick = (arr, f) => arr.map(x => [score(f(x)), x]).filter(a => a[0] > 0).sort((a, b) => b[0] - a[0]).slice(0, 6).map(a => a[1]);
+
+function renderOL(d) {
+  const docs = pick(d.docs || [], b => b.title + ' ' + (b.subject || []).join(' '));
+  return docs.map(b => book(b.cover_i ? `https://covers.openlibrary.org/b/id/${b.cover_i}-S.jpg` : '',
+    'https://openlibrary.org' + b.key, b.title, [(b.author_name || []).slice(0, 2).join(', '), b.first_publish_year].filter(Boolean).join(' · '))).join('');
+}
+function renderGB(d) {
+  const items = pick(d.items || [], x => x.volumeInfo.title + ' ' + (x.volumeInfo.subtitle || ''));
+  return items.map(({volumeInfo: v}) => book((v.imageLinks?.smallThumbnail || '').replace('http:', 'https:'),
+    v.infoLink, v.title, [(v.authors || []).slice(0, 2).join(', '), (v.publishedDate || '').slice(0, 4)].filter(Boolean).join(' · '))).join('');
+}
+function renderWS(d) {
+  const r = pick(d.query?.search || [], x => x.title);
+  return r.map(x => `<div class="item"><div><a href="https://${lang}.wikisource.org/wiki/${enc(x.title.replace(/ /g, '_'))}" target="_blank" rel="noopener">${esc(x.title)}</a>
+    <small>${esc(x.snippet.replace(/<[^>]+>/g, '').slice(0, 110))}…</small></div></div>`).join('');
+}
+
+const fmtDate = d => +d ? d.toLocaleDateString(lang === 'it' ? 'it-IT' : 'en-GB', {day: 'numeric', month: 'short', year: 'numeric'}) : '';
+
+async function newsData(q) {
+  const it = lang === 'it';
+  const gn = `https://news.google.com/rss/search?q=${enc(q)}&hl=${it ? 'it&gl=IT&ceid=IT:it' : 'en-US&gl=US&ceid=US:en'}`;
+  const jobs = [
+    j('https://api.rss2json.com/v1/api.json?rss_url=' + enc(gn)).then(d => (d.items || []).map(x => {
+      const i = x.title.lastIndexOf(' - ');
+      return {title: i > 0 ? x.title.slice(0, i) : x.title, src: i > 0 ? x.title.slice(i + 3) : 'Google News', url: x.link, date: new Date(x.pubDate.replace(' ', 'T') + 'Z')};
+    })),
+    j(`https://api.gdeltproject.org/api/v2/doc/doc?query=${enc(q + ' sourcelang:' + (it ? 'italian' : 'english'))}&mode=artlist&maxrecords=12&format=json&sort=datedesc`)
+      .then(d => (d.articles || []).map(x => ({title: x.title, src: x.domain, url: x.url,
+        date: new Date((x.seendate || '').replace(/^(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)(\d\d)Z$/, '$1-$2-$3T$4:$5:$6Z'))})).filter(x => score(x.title) > 0)),
+    j(`https://${lang}.wikinews.org/w/api.php?action=query&list=search&srsearch=${enc(q)}&srlimit=8&format=json&origin=*`)
+      .then(d => (d.query?.search || []).map(x => ({title: x.title, src: 'Wikinews', date: new Date(x.timestamp),
+        url: `https://${lang}.wikinews.org/wiki/${enc(x.title.replace(/ /g, '_'))}`})).filter(x => score(x.title) > 0))
+  ];
+  const res = await Promise.allSettled(jobs);
+  if (res.every(r => r.status === 'rejected')) throw new Error(res[0].reason.message);
+  const seen = new Set();
+  return res.flatMap(r => r.value || [])
+    .filter(x => { const k = x.title.toLowerCase().slice(0, 40); if (seen.has(k)) return false; seen.add(k); return true; })
+    .sort((a, b) => (+b.date || 0) - (+a.date || 0)).slice(0, 10);
+}
+function renderNews(list) {
+  if (!list.length) return '';
+  return list.map(x => `<div class="item"><div><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>
+    <small>${esc([x.src, fmtDate(x.date)].filter(Boolean).join(' · '))}</small></div></div>`).join('');
+}
+
+function search(q) {
+  q = q.trim();
+  if (!q) return;
+  $('#q').value = q;
+  $('#out').hidden = false;
+  saveRecent(q);
+  const t = T[lang], w = wikiData(q);
+  slot('c-wiki', 'book-2', t.wiki, w, renderWiki);
+  slot('c-idx', 'list-details', t.idx, w, renderIdx);
+  slot('c-rel', 'arrows-shuffle', t.rel, w, renderRel);
+  const tt = w.then(d => { const title = d ? d.top.title : q; KW = kwOf(q + ' ' + title); return title; },
+                    () => { KW = kwOf(q); return q; });
+  let gk = ''; try { gk = localStorage.getItem('wikime_gbkey') || ''; } catch (e) {}
+  slot('c-ol', 'books', t.ol, tt.then(x => j(`https://openlibrary.org/search.json?q=${enc(x)}&language=${lang === 'it' ? 'ita' : 'eng'}&limit=25&fields=key,title,author_name,first_publish_year,cover_i,subject`)), renderOL, true);
+  slot('c-gb', 'book', t.gb, tt.then(x => j(`https://www.googleapis.com/books/v1/volumes?q=${enc(x)}&maxResults=20&printType=books&langRestrict=${lang}${gk ? '&key=' + enc(gk) : ''}`)), renderGB, true);
+  slot('c-ws', 'scroll', t.ws, tt.then(x => j(`https://${lang}.wikisource.org/w/api.php?action=query&list=search&srsearch=${enc(x)}&srlimit=20&format=json&origin=*`)), renderWS, true);
+  slot('c-news', 'news', t.news, tt.then(() => newsData(q)), renderNews, true);
+}
+
+function saveRecent(q) {
+  try {
+    const r = [q, ...JSON.parse(localStorage.getItem('wikime_recent') || '[]').filter(x => x !== q)].slice(0, 8);
+    localStorage.setItem('wikime_recent', JSON.stringify(r));
+    showRecent();
+  } catch (e) {}
+}
+function showRecent() {
+  let r = [];
+  try { r = JSON.parse(localStorage.getItem('wikime_recent') || '[]'); } catch (e) {}
+  $('#recent').innerHTML = r.map(x => `<a class="chip" href="#" data-q="${esc(x)}"><i class="ti ti-history"></i> ${esc(x)}</a>`).join('');
+}
+
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-q]');
+  if (a) { e.preventDefault(); search(a.dataset.q); return; }
+  if (e.target.id === 'gbKey') {
+    e.preventDefault();
+    const k = prompt('Chiave API Google Books (gratuita da Google Cloud):');
+    if (k) { try { localStorage.setItem('wikime_gbkey', k.trim()); } catch (x) {} search($('#q').value); }
+    return;
+  }
+  if (e.target.id === 'moreBtn') {
+    const r = $('#rest'); r.hidden = !r.hidden;
+    e.target.textContent = r.hidden ? T[lang].more : T[lang].less;
+  }
+});
+$('#go').onclick = () => search($('#q').value);
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') search(e.target.value); });
+['it', 'en'].forEach(l => $('#l-' + l).onclick = () => {
+  lang = l;
+  document.documentElement.lang = l;
+  $('#l-it').classList.toggle('on', l === 'it');
+  $('#l-en').classList.toggle('on', l === 'en');
+  if ($('#q').value.trim()) search($('#q').value);
+});
+showRecent();
+</script>
+</body>
+</html>
