@@ -68,6 +68,9 @@
     color: #86868b; gap: 8px; text-align: center; padding: 20px; font-size: 13px;
   }
   .tv-placeholder i { font-size: 34px; }
+  .tv-placeholder .err-title { color: #e5e5ea; font-size: 14px; font-weight: 600; }
+  .tv-placeholder .err-text { max-width: 520px; line-height: 1.45; }
+  .tv-placeholder .err-tech { font-size: 11px; color: #6e6e73; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   .tv-mute-btn {
     position: absolute; bottom: 12px; right: 12px; width: 38px; height: 38px; border-radius: 50%; border: none;
     background: rgba(20,20,22,0.55); backdrop-filter: blur(6px); color: #fff;
@@ -189,18 +192,82 @@
       hls.loadSource(ch.streamUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
-      hls.on(Hls.Events.ERROR, (ev, data) => { if (data.fatal) showLoadError(ch); });
+      hls.on(Hls.Events.ERROR, (ev, data) => { if (data.fatal) showLoadError(ch, diagnoseHls(ch, data)); });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = ch.streamUrl;
-      video.play().catch(() => showLoadError(ch));
+      video.addEventListener('error', () => showLoadError(ch, diagnoseNative(ch, video.error)));
+      video.play().catch(() => {});
     } else {
-      showLoadError(ch);
+      showLoadError(ch, { title: 'Browser non compatibile', text: 'Questo browser non sa riprodurre flussi HLS.', tech: '' });
     }
   }
 
-  function showLoadError(ch) {
+  // ---- Diagnosi degli errori ----
+  function geoNote(ch) {
+    return ch.geoBlocked ? ' Nell\'elenco iptv-org questo canale è segnato come geo-bloccato (🔒).' : '';
+  }
+
+  function diagnoseHls(ch, data) {
+    const code = data.response && typeof data.response.code === 'number' ? data.response.code : null;
+    const tech = [data.details, code !== null ? 'HTTP ' + code : null].filter(Boolean).join(' · ');
+    const d = data.details;
+    const E = Hls.ErrorDetails;
+
+    if (location.protocol === 'https:' && /^http:/i.test(ch.streamUrl))
+      return { title: 'Indirizzo non sicuro bloccato dal browser',
+        text: 'Il flusso usa http, ma questa pagina è https: il browser blocca il contenuto misto. Aprendo il modulo da http://localhost potrebbe partire.', tech };
+
+    if (data.type === Hls.ErrorTypes.MEDIA_ERROR)
+      return { title: 'Video non decodificabile',
+        text: 'Il flusso è raggiungibile, ma il browser non riesce a decodificarlo (codec o formato non supportato).', tech };
+
+    if (d === E.MANIFEST_PARSING_ERROR)
+      return { title: 'Il flusso non è valido',
+        text: 'Il server ha risposto, ma non con una playlist HLS valida. Succede quando l\'indirizzo non è più un flusso video (pagina di errore, flusso rimosso, accesso negato con pagina HTML).', tech };
+
+    if (d === E.MANIFEST_LOAD_TIMEOUT || d === E.LEVEL_LOAD_TIMEOUT || d === E.FRAG_LOAD_TIMEOUT)
+      return { title: 'Il server non risponde',
+        text: 'Il server del canale non ha risposto in tempo. Può essere spento, sovraccarico o lento da dove ti trovi.' + geoNote(ch), tech };
+
+    if (code === 401)
+      return { title: 'Richiede autenticazione', text: 'Il server chiede credenziali o un abbonamento: non è un flusso libero.', tech };
+    if (code === 403)
+      return { title: 'Accesso negato dal server',
+        text: 'Il server rifiuta la richiesta. Le cause tipiche sono blocco geografico (IP non del paese del canale), token scaduto o canale riservato agli abbonati. Il browser non può dire quale delle tre.' + geoNote(ch), tech };
+    if (code === 451)
+      return { title: 'Non disponibile nella tua zona', text: 'Il server dichiara il contenuto non accessibile nel tuo paese (blocco legale/geografico).', tech };
+    if (code === 404 || code === 410)
+      return { title: 'Flusso non più disponibile', text: 'L\'indirizzo non esiste più sul server: il canale è stato spento o spostato. Probabilmente l\'elenco iptv-org non è ancora aggiornato.', tech };
+    if (code === 429)
+      return { title: 'Troppe richieste', text: 'Il server ti sta limitando per le troppe richieste. Riprova tra qualche minuto.', tech };
+    if (code >= 500)
+      return { title: 'Problema sul server del canale', text: 'Il server del canale ha restituito un errore interno. Non dipende da te: riprova più tardi.', tech };
+
+    if (!navigator.onLine)
+      return { title: 'Sei offline', text: 'Il dispositivo non risulta connesso a internet.', tech };
+
+    // code 0 / assente: la richiesta non ha ricevuto alcuna risposta leggibile
+    return { title: 'Il browser non è riuscito a leggere il flusso',
+      text: 'Nessuna risposta utilizzabile dal server. Le cause possibili sono: server spento, restrizione CORS (il server non permette l\'incorporamento su altri siti) oppure blocco geografico a livello di rete. Il browser non permette di distinguerle: apri la console (F12, scheda Rete) per vedere l\'errore esatto.' + geoNote(ch),
+      tech: tech || 'errore di rete senza codice HTTP' };
+  }
+
+  function diagnoseNative(ch, err) {
+    const names = { 1: 'MEDIA_ERR_ABORTED', 2: 'MEDIA_ERR_NETWORK', 3: 'MEDIA_ERR_DECODE', 4: 'MEDIA_ERR_SRC_NOT_SUPPORTED' };
+    const code = err ? err.code : 0;
+    const tech = names[code] || 'errore sconosciuto';
+    if (code === 3) return { title: 'Video non decodificabile', text: 'Il flusso è raggiungibile, ma il browser non riesce a decodificarlo.', tech };
+    if (code === 4) return { title: 'Flusso non riproducibile',
+      text: 'Il browser non riesce ad aprire questo indirizzo: può essere spento, bloccato (CORS o area geografica) o in un formato non supportato.' + geoNote(ch), tech };
+    return { title: 'Errore di rete', text: 'La connessione al flusso è fallita o è stata interrotta.' + geoNote(ch), tech };
+  }
+
+  function showLoadError(ch, info) {
+    info = info || { title: 'Canale non riproducibile', text: 'Non è stato possibile avviare il flusso.', tech: '' };
     tvFrameWrap.innerHTML = `<div class="tv-placeholder"><i class="ti ti-alert-triangle" aria-hidden="true"></i>
-      <span>${esc(ch.name)} non è riproducibile qui in questo momento${ch.externalUrl ? ' — apro il sito ufficiale' : ''}</span></div>`;
+      <span class="err-title">${esc(ch.name)}: ${esc(info.title)}</span>
+      <span class="err-text">${esc(info.text)}${ch.externalUrl ? ' Apro il sito ufficiale in un\'altra scheda.' : ''}</span>
+      ${info.tech ? `<span class="err-tech">${esc(info.tech)}</span>` : ''}</div>`;
     if (ch.externalUrl) window.open(ch.externalUrl, '_blank', 'noopener');
   }
 
@@ -257,7 +324,7 @@
     const id = 'custom-' + (item.country ? item.country.toLowerCase() + '-' : '') + item.baseName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const existing = allChannels().find(c => c.id === id);
     if (existing) { selectChannel(existing); return; }
-    const ch = { id, name: item.baseName, logo: item.logo, streamUrl: item.url, custom: true };
+    const ch = { id, name: item.baseName, logo: item.logo, streamUrl: item.url, custom: true, geoBlocked: item.geoBlocked };
     customChannels.push(ch);
     saveCustom(customChannels);
     selectChannel(ch);
