@@ -98,6 +98,14 @@
   </div>
   <p class="add-note" id="countNote">Elenco da <a href="https://github.com/iptv-org/iptv" target="_blank" rel="noopener">iptv-org</a>: canali segnalati dalla community, alcuni possono non funzionare o essere geo-bloccati (🔒).</p>
 
+  <p class="section-title sub-title">Aggiungi da YouTube</p>
+  <div class="add-row">
+    <input id="ytUrl" type="text" placeholder="Link della diretta YouTube…">
+    <input id="ytName" type="text" placeholder="Nome (facoltativo)" style="flex:1 1 140px">
+    <button id="ytAddBtn">Aggiungi</button>
+  </div>
+  <p class="add-note" id="ytNote"></p>
+
   <div class="tv-panel">
     <div class="tv-frame-wrap" id="tvFrameWrap">
       <div class="tv-placeholder"><i class="ti ti-device-tv" aria-hidden="true"></i><span>Scegli un canale qui sopra</span></div>
@@ -105,7 +113,7 @@
     <div class="tv-footer">
       <span class="now-ch" id="nowChannel">Nessun canale selezionato</span>
       <a id="openExternal" href="#" target="_blank" rel="noopener" style="display:none;">
-        Apri sul sito ufficiale <i class="ti ti-external-link" aria-hidden="true"></i>
+        <span id="openLabel">Apri sul sito ufficiale</span> <i class="ti ti-external-link" aria-hidden="true"></i>
       </a>
     </div>
   </div>
@@ -128,7 +136,10 @@
   const $ = id => document.getElementById(id);
   const channelsRow = $('channelsRow'), tvFrameWrap = $('tvFrameWrap'), nowChannel = $('nowChannel'),
         openExternal = $('openExternal'), select = $('itChannelSelect'), addBtn = $('addChannelBtn'),
-        searchInput = $('searchInput'), countNote = $('countNote');
+        searchInput = $('searchInput'), countNote = $('countNote'),
+        ytUrl = $('ytUrl'), ytName = $('ytName'), ytAddBtn = $('ytAddBtn'), ytNote = $('ytNote'), openLabel = $('openLabel');
+  const YT_HINT = 'Incolla il link di una diretta (youtube.com/watch?v=…, youtu.be/…, youtube.com/live/…) oppure di un canale nella forma youtube.com/channel/UC…';
+  ytNote.textContent = YT_HINT;
 
   function loadCustom() { try { return JSON.parse(localStorage.getItem(CUSTOM_KEY)) || []; } catch (e) { return []; } }
   function saveCustom(l) { try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(l)); } catch (e) {} }
@@ -136,6 +147,8 @@
   let customChannels = loadCustom();
   let parsedList = [];
   let hls = null;
+  let ytPlayer = null;
+  let ytApiPromise = null;
   let activeId = null;
 
   const allChannels = () => presets.concat(customChannels);
@@ -173,11 +186,15 @@
 
   function selectChannel(ch) {
     destroyHls();
+    destroyYt();
     activeId = ch.id;
     nowChannel.textContent = ch.name;
+    openLabel.textContent = ch.type === 'youtube' ? 'Apri su YouTube' : 'Apri sul sito ufficiale';
     if (ch.externalUrl) { openExternal.href = ch.externalUrl; openExternal.style.display = 'inline-flex'; }
     else openExternal.style.display = 'none';
     renderChips();
+
+    if (ch.type === 'youtube') { playYoutube(ch); return; }
 
     tvFrameWrap.innerHTML = `<video id="tvVideo" autoplay muted playsinline></video>
       <button class="tv-mute-btn" id="tvMuteBtn" title="Audio"><i class="ti ti-volume-3" aria-hidden="true"></i></button>`;
@@ -266,10 +283,115 @@
     info = info || { title: 'Canale non riproducibile', text: 'Non è stato possibile avviare il flusso.', tech: '' };
     tvFrameWrap.innerHTML = `<div class="tv-placeholder"><i class="ti ti-alert-triangle" aria-hidden="true"></i>
       <span class="err-title">${esc(ch.name)}: ${esc(info.title)}</span>
-      <span class="err-text">${esc(info.text)}${ch.externalUrl ? ' Apro il sito ufficiale in un\'altra scheda.' : ''}</span>
+      <span class="err-text">${esc(info.text)}${ch.externalUrl ? (ch.quiet ? ' Puoi provare con il link «Apri su YouTube» qui sotto.' : ' Apro il sito ufficiale in un\'altra scheda.') : ''}</span>
       ${info.tech ? `<span class="err-tech">${esc(info.tech)}</span>` : ''}</div>`;
-    if (ch.externalUrl) window.open(ch.externalUrl, '_blank', 'noopener');
+    if (ch.externalUrl && !ch.quiet) window.open(ch.externalUrl, '_blank', 'noopener');
   }
+
+  // ---- YouTube ----
+  function destroyYt() {
+    if (ytPlayer) { try { ytPlayer.destroy(); } catch (e) {} ytPlayer = null; }
+  }
+
+  function loadYtApi() {
+    if (window.YT && YT.Player) return Promise.resolve();
+    if (ytApiPromise) return ytApiPromise;
+    ytApiPromise = new Promise((resolve, reject) => {
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => { if (prev) prev(); resolve(); };
+      const sc = document.createElement('script');
+      sc.src = 'https://www.youtube.com/iframe_api';
+      sc.onerror = () => { ytApiPromise = null; reject(new Error('iframe_api')); };
+      document.head.appendChild(sc);
+    });
+    return ytApiPromise;
+  }
+
+  function parseYoutube(raw) {
+    const t = raw.trim();
+    if (/^[\w-]{11}$/.test(t)) return { videoId: t };
+    let u;
+    try { u = new URL(/^https?:/i.test(t) ? t : 'https://' + t); } catch (e) { return null; }
+    const h = u.hostname.replace(/^(www|m|music)\./, '');
+    if (h === 'youtu.be') {
+      const id = u.pathname.slice(1).split('/')[0];
+      return /^[\w-]{11}$/.test(id) ? { videoId: id } : null;
+    }
+    if (h === 'youtube.com' || h === 'youtube-nocookie.com') {
+      const v = u.searchParams.get('v');
+      if (v && /^[\w-]{11}$/.test(v)) return { videoId: v };
+      const m = u.pathname.match(/^\/(?:live|embed|shorts)\/([\w-]{11})/);
+      if (m) return { videoId: m[1] };
+      const c = u.pathname.match(/^\/channel\/(UC[\w-]{22})/);
+      if (c) return { channelId: c[1] };
+    }
+    return null;
+  }
+
+  async function playYoutube(ch) {
+    tvFrameWrap.innerHTML = '<div class="tv-placeholder"><i class="ti ti-loader" aria-hidden="true"></i><span>Caricamento del player YouTube…</span></div>';
+    try { await loadYtApi(); }
+    catch (e) {
+      showLoadError(ch, { title: 'YouTube non raggiungibile', text: 'Non riesco a caricare il player di YouTube: connessione assente o contenuti di YouTube bloccati dal browser o da un blocco pubblicità.', tech: 'iframe_api' });
+      return;
+    }
+    if (activeId !== ch.id) return; // nel frattempo hai scelto un altro canale
+    const params = new URLSearchParams({ autoplay: '1', mute: '1', playsinline: '1', enablejsapi: '1', rel: '0' });
+    if (ch.channelId) params.set('channel', ch.channelId);
+    if (/^https?:$/.test(location.protocol)) params.set('origin', location.origin);
+    const base = ch.videoId ? 'https://www.youtube.com/embed/' + ch.videoId : 'https://www.youtube.com/embed/live_stream';
+    tvFrameWrap.innerHTML = `<iframe id="ytFrame" src="${base}?${params}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen style="width:100%;height:100%;border:0;display:block"></iframe>`;
+    ytPlayer = new YT.Player('ytFrame', { events: { onError: e => showLoadError(ch, diagnoseYoutube(e.data)) } });
+  }
+
+  function diagnoseYoutube(code) {
+    const tech = 'YouTube error ' + code;
+    if (code === 101 || code === 150)
+      return { title: 'Incorporamento non consentito', text: 'Il proprietario del video non permette di vederlo dentro altri siti: è una scelta di chi pubblica, non un blocco geografico.', tech };
+    if (code === 100)
+      return { title: 'Video non trovato', text: 'Il video è stato rimosso, è privato oppure la diretta è terminata. Se era una diretta, il suo link cambia a ogni nuova trasmissione: prova a incollare quello attuale o il link del canale (youtube.com/channel/UC…).', tech };
+    if (code === 2)
+      return { title: 'Indirizzo del video non valido', text: 'YouTube non riconosce l\'identificativo di questo video.', tech };
+    if (code === 5)
+      return { title: 'Errore del player', text: 'Il player HTML5 di YouTube ha avuto un errore: riprova o ricarica la pagina.', tech };
+    return { title: 'Il video non parte', text: 'YouTube ha restituito un errore che non so interpretare.', tech };
+  }
+
+  ytAddBtn.addEventListener('click', async () => {
+    const raw = ytUrl.value.trim();
+    if (!raw) return;
+    const p = parseYoutube(raw);
+    if (!p) {
+      ytNote.textContent = /\/@/.test(raw)
+        ? 'I link con @nome non bastano per trovare la diretta. Apri la diretta su YouTube e copia il link del video, oppure usa il link del canale nella forma youtube.com/channel/UC…'
+        : 'Link non riconosciuto. ' + YT_HINT;
+      return;
+    }
+    const id = p.videoId ? 'yt-' + p.videoId : 'ytc-' + p.channelId;
+    const existing = allChannels().find(c => c.id === id);
+    if (existing) { selectChannel(existing); return; }
+
+    let name = ytName.value.trim();
+    if (!name && p.videoId) {
+      try {
+        const r = await fetch('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + p.videoId));
+        if (r.ok) name = ((await r.json()).title || '').trim();
+      } catch (e) {}
+    }
+    if (!name) name = 'Canale YouTube';
+
+    const ch = {
+      id, name, type: 'youtube', videoId: p.videoId, channelId: p.channelId, custom: true, quiet: true,
+      logo: p.videoId ? `https://i.ytimg.com/vi/${p.videoId}/default.jpg` : '',
+      externalUrl: p.videoId ? 'https://www.youtube.com/watch?v=' + p.videoId : `https://www.youtube.com/channel/${p.channelId}/live`
+    };
+    customChannels.push(ch);
+    saveCustom(customChannels);
+    ytUrl.value = ''; ytName.value = '';
+    ytNote.textContent = YT_HINT;
+    selectChannel(ch);
+  });
+  ytUrl.addEventListener('keydown', e => { if (e.key === 'Enter') ytAddBtn.click(); });
 
   // ---- Elenco iptv-org ----
   function parseM3u(text) {
