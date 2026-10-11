@@ -177,7 +177,7 @@
   .chart-panel {
     position: relative; overflow: hidden; touch-action: pan-y;
     -webkit-user-select: none; user-select: none; cursor: grab;
-    background: var(--surface); border-radius: 32px; border: 0.5px solid var(--hairline);
+    background: var(--surface); border-radius: 32px; border: 0;
     padding: 16px 14px; margin-bottom: 14px; box-shadow: var(--shadow-lg);
     transition: background-color 0.4s ease;
   }
@@ -196,7 +196,7 @@
   }
   .stat-card {
     background: var(--surface); text-align: center;
-    border-radius: 28px; border: 0.5px solid var(--hairline); padding: 16px 18px;
+    border-radius: 28px; border: 0; padding: 16px 18px;
     box-shadow: var(--shadow-sm); transition: background-color 0.4s ease;
     min-width: 0; overflow: hidden;
     display: flex; flex-direction: column; justify-content: center;
@@ -268,7 +268,7 @@
 
   /* ---------- Radar ---------- */
   .radar-embed {
-    background: var(--surface); border-radius: 32px; border: 0.5px solid var(--hairline);
+    background: var(--surface); border-radius: 32px; border: 0;
     overflow: hidden; margin-bottom: 8px; box-shadow: var(--shadow-lg);
   }
   .radar-embed iframe { width: 100%; height: 420px; border: 0; display: block; }
@@ -290,7 +290,7 @@
   @media (prefers-contrast: more) {
     :root { --hairline: rgba(0,0,0,0.45); --text-3: #555; --text-2: #3a3a3c; --nav-bg: var(--bg); }
     .nav::before { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bg); }
-    .geo-btn, .stat-card, .chart-panel, .radar-embed { border-width: 1px; }
+    .geo-btn { border-width: 1px; }
   }
   @media (prefers-contrast: more) {
     :root[data-theme="dark"] { --hairline: rgba(255,255,255,0.6); --text-3: #c7c7cc; --text-2: #e5e5ea; }
