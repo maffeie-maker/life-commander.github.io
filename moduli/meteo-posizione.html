@@ -198,7 +198,7 @@
 
   /* ---------- Card statistiche ---------- */
   .stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
-  @media (max-width: 640px) {
+  @media (max-width: 640px), (max-height: 500px) and (orientation: landscape) {
     .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .stat-card { padding: 14px 12px; border-radius: 24px; }
     .sun-row { gap: 6px; }
@@ -322,6 +322,46 @@
   .status { font-size: 0.8125rem; color: var(--text-3); padding: 20px 0; text-align: center; }
   footer { text-align: center; font-size: 0.75rem; color: var(--text-4); margin-top: 32px; }
 
+
+  /* ---------- Layout adattivo ----------
+     Stretto: una colonna. Largo (monitor) o telefono in orizzontale: due colonne affiancate,
+     a sinistra "adesso" (temperatura, giorni, grafico), a destra i dettagli e il radar. */
+  .layout { display: block; }
+  @media (min-width: 1000px), (min-width: 641px) and (max-height: 500px) and (orientation: landscape) {
+    .wrap, .nav-inner { max-width: 1180px; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 24px; align-items: start; }
+    .hero { margin-top: 0; }
+    .radar-embed iframe { height: 380px; }
+  }
+  @media (min-width: 1000px) {
+    .chart-wrap { height: 260px; }
+  }
+
+  /* Monitor molto largo (es. 2560×1440): tre colonne — adesso | dettagli | radar sempre in vista.
+     C'è spazio per tutto, quindi i 9 riquadri sono sempre visibili e il bottone "Tutti i dettagli" scompare. */
+  @media (min-width: 1600px) {
+    .wrap, .nav-inner { max-width: 1840px; }
+    .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr); }
+    .col-side { display: contents; }          /* i figli diventano celle della griglia */
+    .col-main { grid-column: 1; grid-row: 1; }
+    .stats-grid { grid-column: 2; grid-row: 1; margin-bottom: 0; }
+    .more-wrap { display: none; }
+    .radar-embed { grid-column: 3; grid-row: 1; position: sticky; top: 64px; margin-bottom: 0; }
+    .radar-embed iframe { height: clamp(520px, calc(100vh - 140px), 760px); }
+  }
+  @media (max-height: 500px) and (orientation: landscape) {
+    .hero .icon-big { font-size: 3rem; margin-top: 4px; }
+    .hero .temp-big { font-size: 4rem; }
+    .chart-wrap { height: 200px; }
+  }
+
+  /* mouse: segnali discreti al passaggio, solo dove c'è un puntatore preciso */
+  @media (hover: hover) and (pointer: fine) {
+    .day-tab:not(.active):hover { background: rgba(120,120,128,0.08); }
+    .theme-opt:hover { color: var(--text); }
+    .geo-btn:hover, .more-btn:hover { opacity: 0.8; }
+  }
+
   /* ---------- Accessibilità ---------- */
   @media (prefers-reduced-motion: reduce) {
     .card-enter { animation: none; }
@@ -367,6 +407,9 @@
 
   <p class="geo-status" id="geo-status" role="status"></p>
 
+  <div class="layout">
+  <div class="col-main">
+
   <div class="hero">
     <p class="place" id="place-name">Correggio, Reggio Emilia</p>
     <p class="updated">Aggiornato alle <span id="updated-time">&hellip;</span></p>
@@ -391,6 +434,10 @@
       </div>
     </div>
   </div>
+
+  </div>
+
+  <div class="col-side">
 
   <div class="stats-grid" id="stats-grid">
     <div class="stat-card" id="card-uv" hidden><p class="s-label"><span class="icon-badge icon-uv"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4.5" y1="4.5" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.5" y2="19.5"/><line x1="4.5" y1="19.5" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.5" y2="4.5"/></svg></span>Indice UV</p><p class="s-value" id="stat-uv">&hellip;</p></div>
@@ -459,6 +506,9 @@
     <iframe id="radar-iframe" src="" loading="lazy" title="Radar precipitazioni live"></iframe>
   </div>
 
+  </div>
+  </div>
+
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -472,7 +522,7 @@
   let currentHourIdx = null;
   let loadToken = 0;            // scarta le risposte di caricamenti ormai superati
 
-  // Rilevanza dei riquadri: in vista compatta ne mostriamo i più utili adesso (3 su desktop, 4 su telefono).
+  // Rilevanza dei riquadri: in vista compatta ne mostriamo i più utili adesso (da 3 a 9 secondo lo spazio).
   // L'ordine delle chiavi è quello del DOM (a parità di punteggio vince il primo).
   const relevance = {
     'card-uv': 0, 'card-sun': 35, 'card-wind': 0, 'card-moon': 5,
@@ -690,6 +740,19 @@
   }
   panel.addEventListener('pointerup', (e) => endDrag(e, false));
   panel.addEventListener('pointercancel', (e) => endDrag(e, true));
+
+  /* ---- Trackpad / rotella orizzontale: cambia giorno (una volta per gesto) ---- */
+  let wheelLock = 0;
+  panel.addEventListener('wheel', (e) => {
+    if (!hourlyFull || Math.abs(e.deltaX) < 8 || Math.abs(e.deltaX) < Math.abs(e.deltaY) * 1.5) return;
+    e.preventDefault();                       // evita anche il "indietro" del browser
+    const now = performance.now();
+    if (now < wheelLock) return;
+    const n = selectedDay + (e.deltaX > 0 ? 1 : -1);
+    if (n < 0 || n >= dailyFull.time.length) { wheelLock = now + 200; return; }
+    wheelLock = now + 650;                    // l'inerzia del trackpad non deve saltare due giorni
+    commitDay(n, 0);
+  }, { passive: false });
 
   /* ---- Selettore giorni: tocco e tastiera ---- */
   tabsEl.addEventListener('click', (e) => {
@@ -1076,10 +1139,15 @@
      Vista essenziale: i 4 riquadri più utili adesso, il resto a richiesta
      ===================================================================== */
   const moreBtn = document.getElementById('more-btn');
-  // Vista compatta: una riga piena. Desktop = 3 colonne → 3 riquadri; telefono = 2 colonne → 4 (2×2).
-  const wideMq = window.matchMedia('(min-width: 641px)');
-  const compactCount = () => (wideMq.matches ? 3 : 4);
-  wideMq.addEventListener('change', () => updateCards());
+  // Vista compatta: sempre righe piene.
+  // Telefono (anche in orizzontale) = 2 colonne → 4 (2×2); monitor largo = 3 colonne × 2 righe → 6; in mezzo = 1 riga → 3.
+  const phoneMq = window.matchMedia('(max-width: 640px), (max-height: 500px) and (orientation: landscape)');
+  const xlMq = window.matchMedia('(min-width: 1000px)');
+  const xxlMq = window.matchMedia('(min-width: 1600px)');   // 3 colonne: c'è posto per tutti i 9 riquadri
+  const compactCount = () => (phoneMq.matches ? 4 : (xxlMq.matches ? 9 : (xlMq.matches ? 6 : 3)));
+  phoneMq.addEventListener('change', () => updateCards());
+  xlMq.addEventListener('change', () => updateCards());
+  xxlMq.addEventListener('change', () => updateCards());
   function updateCards() {
     if (!ready.weather || !ready.aqi || !ready.pressure) return;   // niente scelte a dati incompleti
     document.getElementById('stats-grid').classList.toggle('expanded', showAll);
