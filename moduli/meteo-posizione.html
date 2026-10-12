@@ -156,6 +156,16 @@
   .hero .hilo { font-size: 0.9375rem; color: var(--text-2); margin: 4px 0 0; line-height: 1.3; }
   .hero .hilo b { color: var(--text); font-weight: 600; }
 
+  /* Previsione sintetica: sempre visibile (niente tooltip: su touch non esisterebbe) */
+  .forecast {
+    max-width: 34rem; margin: 14px auto 0; font-size: 0.9375rem; line-height: 1.45;
+    color: var(--text-2); text-wrap: balance; letter-spacing: 0.005em;
+  }
+  .forecast:empty { display: none; }
+  .forecast strong { color: var(--text); font-weight: 600; }
+  .forecast.fade-in { animation: fcIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes fcIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
   /* ---------- Selettore giorni (segmented control con pill che scorre) ---------- */
   .card-panel {
     background: var(--seg); border-radius: 28px; padding: 4px; margin-bottom: 14px;
@@ -364,7 +374,7 @@
 
   /* ---------- Accessibilità ---------- */
   @media (prefers-reduced-motion: reduce) {
-    .card-enter { animation: none; }
+    .card-enter, .forecast.fade-in { animation: none; }
     .more-btn, .more-btn i { transition: none; }
     .more-btn:active { opacity: 0.6; transform: none; }
     .gauge-hand, .geo-btn, .day-tab, .back, .theme-thumb, .theme-opt, .nav::before { transition: none; }
@@ -417,6 +427,7 @@
     <p class="temp-big" id="hero-temp">&hellip;</p>
     <p class="cond" id="hero-cond">Caricamento&hellip;</p>
     <p class="hilo" id="hero-hilo"></p>
+    <p class="forecast" id="forecast"></p>
   </div>
 
   <div class="card-panel">
@@ -520,6 +531,7 @@
   let dailyFull = null;
   let chartInstance = null;
   let currentHourIdx = null;
+  let pressureInfo = null;       // tendenza della pressione (solo per la previsione di oggi)
   let loadToken = 0;            // scarta le risposte di caricamenti ormai superati
 
   // Rilevanza dei riquadri: in vista compatta ne mostriamo i più utili adesso (da 3 a 9 secondo lo spazio).
@@ -918,6 +930,7 @@
       const detail = sign + Math.abs(delta).toFixed(1).replace('.', ',') + ' hPa in 3 h';
       document.getElementById('pressure-detail').textContent = detail;
       card.title = 'Pressione ' + word + ' (' + detail + ')';
+      pressureInfo = { trend, word };
 
       // Sparkline 72×22: scala con un minimo di 4 hPa (una pressione piatta resta piatta).
       // Grigia su tutte le 24 ore; colorata solo sulle ultime 3 ore = quelle che spiegano la freccia.
@@ -944,8 +957,10 @@
       document.getElementById('pressure-detail').textContent = '';
       document.getElementById('pressure-arrow').className = '';
       relevance['card-pressure'] = 15;
+      pressureInfo = null;
     }
     ready.pressure = true; updateCards();
+    if (hourlyFull) renderForecast(selectedDay);
   }
 
   async function loadAll() {
@@ -1132,7 +1147,150 @@
     if (visKmRel != null) vr = visKmRel < 1 ? 90 : (visKmRel < 4 ? 60 : 10);
     if (snowDay > 0) vr = Math.max(vr, 70);
     relevance['card-visibility'] = vr;
+    renderForecast(dayIndex);
     updateCards();
+  }
+
+
+  /* =====================================================================
+     Previsione sintetica: testo costruito con regole fisse dai dati orari
+     (nessuna IA, nessuna richiesta in più). Priorità: temporali > cielo > pioggia/neve > temperature > note.
+     ===================================================================== */
+  const RAIN_CODES = new Set([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82]);
+  const SNOW_CODES = new Set([71, 73, 75, 77, 85, 86]);
+  const SKY_WORD = { clear: 'sereno', partly: 'parzialmente nuvoloso', cloudy: 'nuvoloso', fog: 'nebbia' };
+  const SKY_SEV = { clear: 0, partly: 1, cloudy: 2, fog: 3 };
+  const PARTS = [
+    { k: 0, a: 6, b: 12 },    // mattina
+    { k: 1, a: 12, b: 18 },   // pomeriggio
+    { k: 2, a: 18, b: 24 }    // sera
+  ];
+  const AT = { 0: 'al mattino', 1: 'nel pomeriggio', 2: 'in serata', 3: 'nella notte' };
+  const capital = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+  function skyCat(code) {
+    if (code === 0 || code === 1) return 'clear';
+    if (code === 2) return 'partly';
+    if (code === 45 || code === 48) return 'fog';
+    return 'cloudy';                       // nuvoloso, pioggia, neve, temporale: il cielo è coperto
+  }
+
+  function buildForecast(dayIndex) {
+    const T = hourlyFull, base = dayIndex * 24;
+    const nowH = dayIndex === 0 ? new Date().getHours() : 0;
+    const hours = [];
+    for (let h = nowH; h < 24; h++) if (base + h < T.time.length) hours.push(h);
+    if (!hours.length) return [];
+
+    const code = h => { const c = T.weather_code[base + h]; return c == null ? 3 : c; };
+    const prob = h => T.precipitation_probability[base + h] || 0;
+
+    // --- fasce del giorno (per oggi solo quelle che restano) ---
+    let parts = PARTS.map(p => ({ k: p.k, hrs: hours.filter(h => h >= p.a && h < p.b) })).filter(p => p.hrs.length >= 2);
+    if (!parts.length) parts = [{ k: 3, hrs: hours }];
+    parts.forEach(p => {
+      const c = {};
+      p.hrs.forEach(h => { const s = skyCat(code(h)); c[s] = (c[s] || 0) + 1; });
+      p.cat = Object.keys(c).sort((x, y) => c[y] - c[x] || SKY_SEV[y] - SKY_SEV[x])[0];
+    });
+    const groups = [];
+    parts.forEach(p => {
+      const g = groups[groups.length - 1];
+      if (g && g.cat === p.cat) g.end = p.k; else groups.push({ cat: p.cat, start: p.k, end: p.k });
+    });
+
+    let head;
+    if (groups.length === 1) {
+      head = SKY_WORD[groups[0].cat] + (parts.length === 1 ? ' ' + AT[parts[0].k]
+        : (dayIndex === 0 ? ' per il resto della giornata' : ' per tutta la giornata'));
+    } else if (groups.length === 2) {
+      const [a, b] = groups;
+      const endA = a.end === 0 ? 'fino a metà giornata' : 'fino al tardo pomeriggio';
+      const fromB = b.start === 1 ? 'dal pomeriggio' : 'in serata';
+      head = SKY_WORD[a.cat] + ' ' + endA + ', poi ' + SKY_WORD[b.cat] + ' ' + fromB;
+    } else {
+      const a = groups[0], z = groups[groups.length - 1];
+      head = 'cielo variabile: ' + SKY_WORD[a.cat] + ' ' + AT[a.start] + ', ' + SKY_WORD[z.cat] + ' ' + AT[z.start];
+    }
+
+    // --- precipitazioni / temporali / neve ---
+    const fmt = x => (x === 0 || x === 24) ? 'mezzanotte' : 'le ' + x;
+    const range = hs => {
+      const a = hs[0], e = hs[hs.length - 1] + 1;
+      if (e - a >= 14) return 'per gran parte della giornata';
+      if (e - a <= 1) return 'intorno alle ' + a;
+      return 'tra ' + fmt(a) + ' e ' + fmt(e);
+    };
+    const stormHrs = hours.filter(h => code(h) >= 95);
+    const rainHrs = hours.filter(h => RAIN_CODES.has(code(h)) || prob(h) >= 50);
+    const snowHrs = hours.filter(h => SNOW_CODES.has(code(h)));
+    const snowDay = (dailyFull && dailyFull.snowfall_sum) ? dailyFull.snowfall_sum[dayIndex] : 0;
+
+    let storm = null;
+    if (stormHrs.length) {
+      const hail = stormHrs.some(h => code(h) === 96 || code(h) === 99);
+      storm = 'Temporali ' + range(stormHrs) + (hail ? ', possibile grandine' : '');
+    } else if ((relevance['risk-card'] || 0) >= 60 && T.cape) {
+      let best = hours[0];
+      hours.forEach(h => { if ((T.cape[base + h] || 0) > (T.cape[base + best] || 0)) best = h; });
+      storm = 'Rischio temporali elevato ' + (best < 12 ? 'al mattino' : (best < 18 ? 'nel pomeriggio' : 'in serata'));
+    }
+    let rain = null;
+    if (!storm && rainHrs.length) {
+      const p = Math.max(...rainHrs.map(prob));
+      const real = rainHrs.some(h => RAIN_CODES.has(code(h)));
+      const heavy = rainHrs.some(h => code(h) === 65 || code(h) === 82);
+      rain = (heavy ? 'Pioggia intensa' : (real ? 'Pioggia' : 'Possibile pioggia')) + ' ' + range(rainHrs) + ' (' + p + '%)';
+    }
+    let snow = null;
+    if (snowDay > 0) snow = 'Neve prevista (' + snowDay.toFixed(1).replace('.', ',') + ' cm)';
+    else if (snowHrs.length) snow = 'Neve ' + range(snowHrs);
+
+    // --- temperature (sull'intera giornata) ---
+    let iMax = 0, iMin = 0;
+    for (let h = 0; h < 24 && base + h < T.time.length; h++) {
+      if (T.temperature_2m[base + h] > T.temperature_2m[base + iMax]) iMax = h;
+      if (T.temperature_2m[base + h] < T.temperature_2m[base + iMin]) iMin = h;
+    }
+    const temps = 'Massima ' + Math.round(T.temperature_2m[base + iMax]) + '° verso le ' + iMax +
+      ', minima ' + Math.round(T.temperature_2m[base + iMin]) + '°' + ((iMin >= 3 && iMin <= 8) ? ' all\u2019alba' : '');
+
+    // --- note (al massimo due, per priorità) ---
+    const notes = [];
+    const gust = Math.max(...hours.map(h => T.wind_gusts_10m ? (T.wind_gusts_10m[base + h] || 0) : 0));
+    if (gust >= 60) notes.push('Vento forte, raffiche fino a ' + Math.round(gust) + ' km/h');
+    else if (gust >= 40) notes.push('Raffiche fino a ' + Math.round(gust) + ' km/h');
+    const uv = Math.max(...hours.map(h => T.uv_index ? (T.uv_index[base + h] || 0) : 0));
+    if (uv >= 8) notes.push('Indice UV molto alto');
+    else if (uv >= 6) notes.push('Indice UV alto');
+    if (dayIndex === 0 && pressureInfo && pressureInfo.trend === 'down') notes.push('Pressione ' + pressureInfo.word);
+
+    const out = [];
+    if (storm) out.push({ t: storm, strong: true });
+    out.push({ t: capital(head) });
+    if (rain) out.push({ t: rain });
+    if (snow) out.push({ t: snow });
+    out.push({ t: temps });
+    notes.slice(0, 2).forEach(n => out.push({ t: n }));
+    return out;
+  }
+
+  function renderForecast(dayIndex) {
+    const el = document.getElementById('forecast');
+    const parts = buildForecast(dayIndex);
+    const key = parts.map(p => (p.strong ? '!' : '') + p.t).join('|');
+    if (el.dataset.key === key) return;        // nessun cambiamento: nessuna animazione
+    const first = !el.dataset.key;
+    el.dataset.key = key;
+    el.textContent = '';
+    parts.forEach(p => {
+      const s = document.createElement(p.strong ? 'strong' : 'span');
+      s.textContent = p.t + '. ';
+      el.appendChild(s);
+    });
+    if (!first && !prefersReduced()) {
+      el.classList.remove('fade-in'); void el.offsetWidth; el.classList.add('fade-in');
+    }
   }
 
   /* =====================================================================
