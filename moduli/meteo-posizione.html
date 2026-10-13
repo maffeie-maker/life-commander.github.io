@@ -29,6 +29,11 @@
     --dot-fill: #fff;
     --dot-ring: #1d1d1f;
     --moon-dark: #3a3a3c;
+    --dial-a: #d9d9de;
+    --dial-b: #8e8e93;
+    --hill-3: #cfd9e3;
+    --hill-2: #a9b9c9;
+    --hill-1: #7f95ab;
     --moon-lit: #f3ecd2;
     /* piccole superfici = ombra corta; grandi superfici = più spessore */
     --shadow-sm: 0 6px 20px rgba(0,0,0,0.14);   /* riquadri piccoli: ombra più corta */
@@ -51,6 +56,11 @@
       --dot-fill: #1c1c1e;
       --dot-ring: #f5f5f7;
       --moon-dark: #2c2c2e;
+      --dial-a: #48484a;
+      --dial-b: #a1a1a6;
+      --hill-3: #2b3642;
+      --hill-2: #394857;
+      --hill-1: #4d6075;
       --shadow-sm: 0 6px 20px rgba(0,0,0,0.45);
       --shadow-lg: 0 10px 30px rgba(0,0,0,0.6);
   }
@@ -247,7 +257,7 @@
   .icon-risk { background: #ff9500; }
   .icon-air { background: #30b0c7; }
 
-  .stat-card[hidden], .more-wrap[hidden], .spark[hidden] { display: none; }
+  .stat-card[hidden], .more-wrap[hidden] { display: none; }
 
   /* Pressione: la tendenza è il messaggio (parola + freccia + colore), la linea la spiega.
      Linea piccola e sottile; solo le ultime 3 ore hanno colore, il resto è grigio. */
@@ -259,11 +269,9 @@
     font-size: 0.8125rem; font-weight: 600; line-height: 1.3; color: var(--trend);
   }
   .pressure-card[data-trend="flat"] .pressure-trend { color: var(--text-2); }
-  .spark { display: block; margin: 8px auto 4px; overflow: visible; }
-  .spark path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-  .spark-all { stroke: var(--text-4); stroke-width: 1.5; }
-  .spark-recent { stroke: var(--trend); stroke-width: 2.25; }
-  .spark-dot { fill: var(--trend); stroke: var(--surface); stroke-width: 1.5; }
+  .pressure-card .pressure-trend { margin-top: 6px; }
+  .pressure-trend + .gauge-foot { margin-top: 2px; }
+  .pressure-card:not([data-trend="flat"]) .gauge-dot { border-color: var(--trend); }  /* il pallino prende il colore della tendenza */
   .card-enter { animation: cardIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0ms) both; }
   .card-enter { animation-timing-function: linear(0, 0.069, 0.212, 0.368, 0.511, 0.631, 0.727, 0.801, 0.856, 0.897, 0.927, 0.949, 0.964, 0.975, 0.983, 0.988, 0.992, 0.994, 0.996, 0.997, 0.998, 0.999, 1); animation-duration: 0.75s; }
   @keyframes cardIn { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }
@@ -335,6 +343,26 @@
   .sun-arc .progress { fill: none; stroke: url(#sunGrad); stroke-width: 2.75; stroke-linecap: round; }
   .sun-arc .sun { fill: #ffcc00; stroke: var(--surface); stroke-width: 2; filter: drop-shadow(0 0 4px rgba(255,204,0,0.6)); transition: opacity 0.3s ease; }
   .sun-times { display: flex; justify-content: space-between; padding: 0 3%; margin-top: 2px; font-size: 0.875rem; font-weight: 600; line-height: 1.3; letter-spacing: -0.005em; }
+
+  /* Neve: nel pezzo libero dell'anello dei temporali, da azzurro ghiaccio a blu (compare solo se è prevista) */
+  .gauge-snow { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.4s ease; }
+  .gauge-snow.on { opacity: 1; }
+  .gauge-snow .gauge-arc { background: conic-gradient(from 145deg, #bfe3ff 0deg, #0a84ff 70deg, transparent 70.2deg); }
+  #risk-num { color: var(--blue); font-weight: 600; }
+
+  /* Pressione: quadrante neutro (nessun verde/rosso: la pressione non è né buona né cattiva) */
+  .gauge-press .gauge-arc { background: conic-gradient(from 225deg, var(--dial-a) 0deg, var(--dial-b) 270deg, transparent 270.2deg); }
+  .gauge-ticks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .gauge-ticks .ptick { stroke: var(--text-4); stroke-width: 1.2; stroke-linecap: round; }
+  .gauge-ticks .ptick.major { stroke: var(--text-3); stroke-width: 1.8; }
+  .gauge-ticks .pend { font: 600 7.5px system-ui, -apple-system, "SF Pro Text", "Segoe UI", sans-serif; fill: var(--text-4); text-anchor: middle; }
+
+  /* Visibilità: tre colline che sfumano con la nebbia (--f: 0 limpido … 1 nebbia fitta) */
+  .vis-scene { display: block; width: 100%; max-width: 9rem; height: auto; margin: 6px auto 8px; }
+  .vis-scene .hill { transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), fill 0.4s ease; }
+  .vis-scene .h3 { fill: var(--hill-3); opacity: calc(1 - var(--f, 0)); }
+  .vis-scene .h2 { fill: var(--hill-2); opacity: calc(1 - var(--f, 0) * 0.75); }
+  .vis-scene .h1 { fill: var(--hill-1); opacity: calc(1 - var(--f, 0) * 0.4); }
 
   /* estremità arrotondate dell'arco */
   .gauge-cap { position: absolute; inset: 0; transform: rotate(var(--a)); pointer-events: none; }
@@ -417,7 +445,7 @@
     .card-enter, .forecast.fade-in { animation: none; }
     .more-btn, .more-btn i { transition: none; }
     .more-btn:active { opacity: 0.6; transform: none; }
-    .sun-arc .sun { transition: none; }
+    .sun-arc .sun, .gauge-snow, .vis-scene .hill { transition: none; }
     .gauge-hand, .compass-arrow, .geo-btn, .day-tab, .back, .theme-thumb, .theme-opt, .nav::before { transition: none; }
     .nav::before { transform: none; }
     .geo-btn:active { opacity: 0.6; transform: none; }
@@ -529,13 +557,19 @@
       </div>
     </div>
     <div class="stat-card gauge-card" id="risk-card" role="img" aria-label="Temporali &middot; grandine" hidden>
-      <p class="s-label"><span class="icon-badge icon-risk"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 17a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 17.6 9.5a4 4 0 0 1-.6 7.5H6.5z"/><path d="M13 12l-2.5 3.5H13L10.5 19"/></svg></span>Temporali &middot; grandine</p>
+      <p class="s-label"><span class="icon-badge icon-risk"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 17a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 17.6 9.5a4 4 0 0 1-.6 7.5H6.5z"/><path d="M13 12l-2.5 3.5H13L10.5 19"/></svg></span><span id="risk-title">Temporali &middot; grandine</span></p>
       <div class="gauge gauge-risk">
         <div class="gauge-arc"></div>
         <span class="gauge-cap" style="--a:-135deg;--c:#34c759"></span>
         <span class="gauge-cap" style="--a:135deg;--c:#ff3b30"></span>
         <div class="gauge-hand" id="risk-marker" style="transform:rotate(-135deg)"><span class="gauge-dot"></span></div>
-        <div class="gauge-center"><p class="s-value" id="risk-label">&hellip;</p></div>
+        <div class="gauge-snow" id="risk-snow">
+          <div class="gauge-arc"></div>
+          <span class="gauge-cap" style="--a:145deg;--c:#bfe3ff"></span>
+          <span class="gauge-cap" style="--a:215deg;--c:#0a84ff"></span>
+          <div class="gauge-hand" id="snow-marker" style="transform:rotate(145deg)"><span class="gauge-dot"></span></div>
+        </div>
+        <div class="gauge-center"><p class="s-value" id="risk-label">&hellip;</p><p class="gauge-num" id="risk-num"></p></div>
       </div>
     </div>
     <div class="stat-card gauge-card" id="aqi-card" role="img" aria-label="Qualit&agrave; aria" hidden>
@@ -554,20 +588,24 @@
       <div class="sun-times"><span id="stat-sunrise">&hellip;</span><span id="stat-sunset">&hellip;</span></div>
       <p class="s-sub" id="sun-sub"></p>
     </div>
-    <div class="stat-card" id="card-visibility" hidden>
-      <p class="s-label"><span class="icon-badge icon-visibility"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9c1.8-1.8 3.8-2.7 6-2.7"/><path d="M2 12.5c2.5-2.2 5-3.3 10-3.3s7.5 1.1 10 3.3"/><path d="M2 16c3.2-1.3 6.2-2 10-2s6.8.7 10 2"/></svg></span>Visibilit&agrave; &middot; Neve</p>
-      <div class="sun-row">
-        <div><p class="s-value" id="stat-visibility" data-size="sm">&hellip;</p><p class="s-sub" id="stat-fog-note"></p></div>
-        <div class="sun-sep"></div>
-        <div><p class="s-value" id="stat-snow" data-size="sm">&hellip;</p></div>
-      </div>
+    <div class="stat-card vis-card" id="card-visibility" hidden>
+      <p class="s-label"><span class="icon-badge icon-visibility"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9c1.8-1.8 3.8-2.7 6-2.7"/><path d="M2 12.5c2.5-2.2 5-3.3 10-3.3s7.5 1.1 10 3.3"/><path d="M2 16c3.2-1.3 6.2-2 10-2s6.8.7 10 2"/></svg></span>Visibilit&agrave;</p>
+      <svg class="vis-scene" id="vis-scene" viewBox="0 0 120 60" aria-hidden="true" style="--f:0"><path class="hill h3" d="M0 36 Q22 14 46 28 T92 22 T120 30 V60 H0 Z"/><path class="hill h2" d="M0 45 Q26 26 54 39 T104 33 T120 40 V60 H0 Z"/><path class="hill h1" d="M0 54 Q32 40 64 50 T120 46 V60 H0 Z"/></svg>
+      <p class="s-value" id="stat-visibility" data-size="sm">&hellip;</p>
+      <p class="s-sub" id="stat-fog-note"></p>
     </div>
-    <div class="stat-card pressure-card" id="card-pressure" data-trend="flat" hidden>
+    <div class="stat-card gauge-card pressure-card" id="card-pressure" data-trend="flat" hidden>
       <p class="s-label"><span class="icon-badge icon-pressure"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 12l3.5-3.5"/><path d="M12 6.5v.01"/><path d="M17.5 12h.01"/><path d="M6.5 12h.01"/></svg></span> Pressione</p>
-      <p class="s-value" id="stat-pressure">&hellip;</p>
+      <div class="gauge gauge-press">
+        <div class="gauge-arc"></div>
+        <svg class="gauge-ticks" viewBox="0 0 120 120" aria-hidden="true"><line class="ptick major" x1="33.1" y1="86.9" x2="28.9" y2="91.1"/><line class="ptick" x1="22.1" y1="75.7" x2="19.3" y2="76.8"/><line class="ptick" x1="19.0" y1="60.0" x2="16.0" y2="60.0"/><line class="ptick" x1="22.1" y1="44.3" x2="19.3" y2="43.2"/><line class="ptick" x1="31.0" y1="31.0" x2="28.9" y2="28.9"/><line class="ptick" x1="44.3" y1="22.1" x2="43.2" y2="19.3"/><line class="ptick major" x1="60.0" y1="22.0" x2="60.0" y2="16.0"/><line class="ptick" x1="75.7" y1="22.1" x2="76.8" y2="19.3"/><line class="ptick" x1="89.0" y1="31.0" x2="91.1" y2="28.9"/><line class="ptick" x1="97.9" y1="44.3" x2="100.7" y2="43.2"/><line class="ptick" x1="101.0" y1="60.0" x2="104.0" y2="60.0"/><line class="ptick" x1="97.9" y1="75.7" x2="100.7" y2="76.8"/><line class="ptick major" x1="86.9" y1="86.9" x2="91.1" y2="91.1"/><text class="pend" x="22" y="110">980</text><text class="pend" x="98" y="110">1040</text></svg>
+        <span class="gauge-cap" style="--a:-135deg;--c:var(--dial-a)"></span>
+        <span class="gauge-cap" style="--a:135deg;--c:var(--dial-b)"></span>
+        <div class="gauge-hand" id="press-marker" style="transform:rotate(-135deg)"><span class="gauge-dot"></span></div>
+        <div class="gauge-center"><p class="s-value" id="stat-pressure">&hellip;</p><p class="gauge-num">hPa</p></div>
+      </div>
       <p class="pressure-trend"><i class="ti ti-minus" id="pressure-arrow" aria-hidden="true"></i><span id="pressure-word"></span></p>
-      <svg class="spark" id="pressure-spark" width="72" height="22" viewBox="0 0 72 22" aria-hidden="true" hidden><path class="spark-all" id="spark-all" d=""/><path class="spark-recent" id="spark-recent" d=""/><circle class="spark-dot" id="spark-dot" r="3" cx="0" cy="0"/></svg>
-      <p class="s-sub" id="pressure-detail"></p>
+      <p class="gauge-foot" id="pressure-detail"></p>
     </div>
   </div>
 
@@ -1024,6 +1062,7 @@
   function setGauge(prefix, pct, desc) {
     setMarker(prefix + '-marker', pct);
     const card = document.getElementById(prefix + '-card');
+    card.dataset.desc = desc;
     card.title = desc;
     card.setAttribute('aria-label', desc);
   }
@@ -1064,20 +1103,18 @@
     return (243.12 * g) / (17.62 - g);
   }
 
-  // Tendenza della pressione: variazione sulle ultime 3 ore + andamento delle ultime 24.
+  // Tendenza della pressione (a livello del mare): variazione sulle ultime 3 ore.
   async function loadPressure(my) {
     const card = document.getElementById('card-pressure');
-    const spark = document.getElementById('pressure-spark');
     try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=surface_pressure&past_days=1&forecast_days=1&timezone=auto`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=pressure_msl&past_days=1&forecast_days=1&timezone=auto`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('http ' + res.status);
       const d = await res.json();
       if (my !== loadToken) return;
-      const times = d.hourly.time, vals = d.hourly.surface_pressure;
+      const times = d.hourly.time, vals = d.hourly.pressure_msl;
       const idx = findClosestHourIndex(times);
-      const series = vals.slice(Math.max(0, idx - 23), idx + 1).filter(v => v != null);
-      if (idx < 3 || vals[idx] == null || vals[idx - 3] == null || series.length < 4) throw new Error('dati insufficienti');
+      if (idx < 3 || vals[idx] == null || vals[idx - 3] == null) throw new Error('dati insufficienti');
       const delta = vals[idx] - vals[idx - 3];
 
       let icon = 'ti-minus', word = 'stabile', trend = 'flat';
@@ -1094,26 +1131,10 @@
       card.title = 'Pressione ' + word + ' (' + detail + ')';
       pressureInfo = { trend, word };
 
-      // Sparkline 72×22: scala con un minimo di 4 hPa (una pressione piatta resta piatta).
-      // Grigia su tutte le 24 ore; colorata solo sulle ultime 3 ore = quelle che spiegano la freccia.
-      const W = 72, H = 22;
-      const min = Math.min(...series), max = Math.max(...series);
-      const span = Math.max(max - min, 4), mid = (max + min) / 2;
-      const y = v => H / 2 - ((v - mid) / span) * (H - 6);
-      const pts = series.map((v, i) => [i * W / (series.length - 1), y(v)]);
-      const path = a => 'M' + a.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L');
-      document.getElementById('spark-all').setAttribute('d', path(pts));
-      document.getElementById('spark-recent').setAttribute('d', path(pts.slice(-4)));
-      const last = pts[pts.length - 1];
-      const dot = document.getElementById('spark-dot');
-      dot.setAttribute('cx', last[0].toFixed(1)); dot.setAttribute('cy', last[1].toFixed(1));
-      spark.hidden = false;
-
       // Una pressione che scende conta più di una che sale; se è stabile il riquadro resta in secondo piano.
       relevance['card-pressure'] = Math.max(15, delta < 0 ? -delta * 25 : delta * 18);
     } catch (e) {
       if (my !== loadToken) return;
-      spark.hidden = true;
       card.dataset.trend = 'flat'; card.title = '';
       document.getElementById('pressure-word').textContent = '';
       document.getElementById('pressure-detail').textContent = '';
@@ -1125,6 +1146,34 @@
     if (hourlyFull) renderForecast(selectedDay);
   }
 
+  // Neve: pezzo libero dell'anello dei temporali (azzurro → blu), solo se prevista per il giorno scelto.
+  function renderSnow(dayIndex) {
+    const snowCm = (dailyFull && dailyFull.snowfall_sum) ? (dailyFull.snowfall_sum[dayIndex] || 0) : 0;
+    const on = snowCm > 0;
+    const txt = snowCm.toFixed(1).replace('.', ',');
+    document.getElementById('risk-snow').classList.toggle('on', on);
+    document.getElementById('risk-title').textContent = on ? 'Temporali \u00b7 neve' : 'Temporali \u00b7 grandine';
+    document.getElementById('risk-num').textContent = on ? '\u2744 ' + txt + ' cm' : '';
+    document.getElementById('snow-marker').style.transform = 'rotate(' + (145 + Math.min(snowCm, 15) / 15 * 70) + 'deg)';
+    const card = document.getElementById('risk-card');
+    const desc = (card.dataset.desc || 'Rischio temporali e grandine') + (on ? ' Neve prevista: ' + txt + ' cm.' : '');
+    card.title = desc; card.setAttribute('aria-label', desc);
+    if (on) relevance['risk-card'] = Math.max(relevance['risk-card'] || 0, 70);   // in inverno la neve fa salire il riquadro
+  }
+
+  // Visibilità: le colline sfumano man mano che la visibilità cala (scala logaritmica: 10 km limpido, 200 m nebbia fitta).
+  function renderVisibility(visKm) {
+    const f = visKm == null ? 0 : Math.max(0, Math.min(1, 1 - Math.log10(Math.max(visKm, 0.2) * 1000 / 200) / Math.log10(50)));
+    document.getElementById('vis-scene').style.setProperty('--f', f.toFixed(3));
+    let val = '--', word = '';
+    if (visKm != null) {
+      val = (visKm >= 10 ? String(Math.round(visKm)) : visKm.toFixed(1).replace('.', ',')) + ' km';
+      word = visKm >= 10 ? 'Ottima' : (visKm >= 4 ? 'Buona' : (visKm >= 1 ? 'Foschia' : 'Nebbia'));
+    }
+    document.getElementById('stat-visibility').textContent = val;
+    document.getElementById('stat-fog-note').textContent = word;
+  }
+
   async function loadAll() {
     const my = ++loadToken;
     ready.weather = false; ready.aqi = false; ready.pressure = false;
@@ -1133,7 +1182,7 @@
     loadPressure(my);
     try {
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
-        `&current=temperature_2m,apparent_temperature,weather_code,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m` +
+        `&current=temperature_2m,apparent_temperature,weather_code,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m` +
         `&hourly=temperature_2m,precipitation_probability,weather_code,uv_index,visibility,cape,wind_gusts_10m` +
         `&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset,uv_index_max,snowfall_sum` +
         `&timezone=auto&forecast_days=3`;
@@ -1183,7 +1232,9 @@
       setGauge('hum', rh, 'Umidit\u00e0: ' + humWord + ' (' + Math.round(rh) + '%). Punto di rugiada ' + Math.round(dew) + '\u00b0.');
       relevance['hum-card'] = Math.max(20, Math.min(100, Math.abs(rh - 45) * 2.2), dew >= 18 ? 80 : 0);
 
-      document.getElementById('stat-pressure').textContent = Math.round(d.current.surface_pressure) + ' hPa';
+      const pMsl = d.current.pressure_msl;     // pressione ridotta al livello del mare (il riferimento "1013 hPa")
+      document.getElementById('stat-pressure').textContent = Math.round(pMsl);
+      setMarker('press-marker', (pMsl - 980) / 60 * 100);
 
       renderMoon(new Date());
 
@@ -1256,12 +1307,6 @@
     }
     drawChart(chartLabels, chartTemps, chartRains, currentHourIndex);
 
-    // Neve prevista per il giorno selezionato (accumulo giornaliero)
-    if (dailyFull && dailyFull.snowfall_sum) {
-      const snowCm = dailyFull.snowfall_sum[dayIndex];
-      document.getElementById('stat-snow').textContent = snowCm > 0 ? snowCm.toFixed(1) + ' cm' : 'Nessuna';
-    }
-
     // Visibilità: presa dall'ora corrente se è il giorno di oggi, altrimenti media del giorno
     let visKmRel = null;
     if (hourlyFull.visibility) {
@@ -1276,8 +1321,7 @@
       if (visMeters != null) {
         const visKm = visMeters / 1000;
         visKmRel = visKm;
-        document.getElementById('stat-visibility').textContent = visKm.toFixed(1) + ' km';
-        document.getElementById('stat-fog-note').textContent = visKm < 1 ? 'Nebbia fitta' : (visKm < 4 ? 'Foschia/nebbia possibile' : '');
+        renderVisibility(visKm);
       }
     }
     // Rischio temporali/grandine per il giorno selezionato:
@@ -1304,11 +1348,12 @@
       relevance['risk-card'] = score;
     }
 
-    // Visibilità/neve: rilevanti solo se c'è nebbia o nevica
-    const snowDay = (dailyFull && dailyFull.snowfall_sum) ? dailyFull.snowfall_sum[dayIndex] : 0;
+    // Neve: vive nel pezzo libero dell'anello dei temporali (e ne fa salire la rilevanza)
+    renderSnow(dayIndex);
+
+    // Visibilità: rilevante solo con foschia o nebbia
     let vr = 10;
     if (visKmRel != null) vr = visKmRel < 1 ? 90 : (visKmRel < 4 ? 60 : 10);
-    if (snowDay > 0) vr = Math.max(vr, 70);
     relevance['card-visibility'] = vr;
     renderForecast(dayIndex);
     updateCards();
