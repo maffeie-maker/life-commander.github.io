@@ -28,6 +28,8 @@
     --nav-bg: rgba(245,245,247,0.72);
     --dot-fill: #fff;
     --dot-ring: #1d1d1f;
+    --moon-dark: #3a3a3c;
+    --moon-lit: #f3ecd2;
     /* piccole superfici = ombra corta; grandi superfici = più spessore */
     --shadow-sm: 0 6px 20px rgba(0,0,0,0.14);   /* riquadri piccoli: ombra più corta */
     --shadow-lg: 0 10px 30px rgba(0,0,0,0.22);  /* grafico e radar: come nell'originale */
@@ -48,6 +50,7 @@
       --nav-bg: rgba(0,0,0,0.6);
       --dot-fill: #1c1c1e;
       --dot-ring: #f5f5f7;
+      --moon-dark: #2c2c2e;
       --shadow-sm: 0 6px 20px rgba(0,0,0,0.45);
       --shadow-lg: 0 10px 30px rgba(0,0,0,0.6);
   }
@@ -295,7 +298,44 @@
   }
   .gauge-risk .gauge-arc { background: conic-gradient(from 225deg, #34c759 0deg, #ffcc00 135deg, #ff3b30 270deg, transparent 270.2deg); }
   .gauge-aqi .gauge-arc { background: conic-gradient(from 225deg, #34c759 0deg, #ffcc00 94.5deg, #ff9500 175.5deg, #ff3b30 270deg, transparent 270.2deg); }
+  .gauge-uv .gauge-arc { background: conic-gradient(from 225deg, #34c759 0deg, #ffcc00 90deg, #ff9500 150deg, #ff3b30 215deg, #af52de 270deg, transparent 270.2deg); }
   .gauge-hum .gauge-arc { background: conic-gradient(from 225deg, #ff9500 0deg, #ffcc00 54deg, #34c759 135deg, #5ac8fa 210deg, #0a84ff 270deg, transparent 270.2deg); }
+
+  /* riga a piè di riquadro (fascia di protezione UV, direzione e raffiche del vento) */
+  .gauge-foot { font-size: 0.6875rem; line-height: 1.35; color: var(--text-3); margin: 8px 0 0; letter-spacing: 0.01em; text-align: center; }
+  .gauge-foot b { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-2); }
+  .gauge-foot span { display: block; }
+
+  /* Bussola del vento: la freccia sul bordo indica DA DOVE arriva il vento (punta verso il centro) */
+  .compass { position: relative; width: min(100%, 7rem); aspect-ratio: 1; margin: 2px auto 0; }
+  .compass-face { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .compass-face .tick { stroke: var(--text-4); stroke-width: 1.2; stroke-linecap: round; }
+  .compass-face .tick.major { stroke: var(--text-3); stroke-width: 1.8; }
+  .compass-face text { font: 600 9px system-ui, -apple-system, "SF Pro Text", "Segoe UI", sans-serif; fill: var(--text-3); text-anchor: middle; dominant-baseline: central; }
+  .compass-face text.north { fill: #ff3b30; }
+  .compass-arrow {
+    position: absolute; inset: 0; pointer-events: none; will-change: transform;
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); /* fallback */
+    transition: transform 0.75s linear(0, 0.069, 0.212, 0.368, 0.511, 0.631, 0.727, 0.801, 0.856, 0.897, 0.927, 0.949, 0.964, 0.975, 0.983, 0.988, 0.992, 0.994, 0.996, 0.997, 0.998, 0.999, 1);
+  }
+  .compass-arrow svg { display: block; width: 100%; height: 100%; }
+  .compass-arrow path { fill: var(--blue); stroke: var(--blue); stroke-width: 3; stroke-linejoin: round; }
+  .compass .gauge-center .s-value { font-size: 1.25rem; }
+
+  /* Luna: disco con la parte illuminata disegnata davvero (vista dall'emisfero nord) */
+  .moon { display: block; margin: 4px auto 6px; }
+  .moon-dark { fill: var(--moon-dark); transition: fill 0.4s ease; }
+  .moon-lit { fill: var(--moon-lit); }
+  .moon-rim { fill: none; stroke: rgba(128,128,136,0.38); stroke-width: 1; }
+
+  /* Alba · Tramonto: arco del percorso del sole; tratto percorso colorato, resto tratteggiato */
+  .sun-arc { display: block; width: 100%; max-width: 9.5rem; height: auto; margin: 4px auto 0; overflow: visible; }
+  .sun-arc .horizon { stroke: var(--sep); stroke-width: 1.5; stroke-linecap: round; }
+  .sun-arc .track { fill: none; stroke: var(--text-4); stroke-width: 1.5; stroke-dasharray: 2 3.5; stroke-linecap: round; opacity: 0.85; }
+  .sun-arc .progress { fill: none; stroke: url(#sunGrad); stroke-width: 2.75; stroke-linecap: round; }
+  .sun-arc .sun { fill: #ffcc00; stroke: var(--surface); stroke-width: 2; filter: drop-shadow(0 0 4px rgba(255,204,0,0.6)); transition: opacity 0.3s ease; }
+  .sun-times { display: flex; justify-content: space-between; padding: 0 3%; margin-top: 2px; font-size: 0.875rem; font-weight: 600; line-height: 1.3; letter-spacing: -0.005em; }
+
   /* estremità arrotondate dell'arco */
   .gauge-cap { position: absolute; inset: 0; transform: rotate(var(--a)); pointer-events: none; }
   .gauge-cap::after {
@@ -377,7 +417,8 @@
     .card-enter, .forecast.fade-in { animation: none; }
     .more-btn, .more-btn i { transition: none; }
     .more-btn:active { opacity: 0.6; transform: none; }
-    .gauge-hand, .geo-btn, .day-tab, .back, .theme-thumb, .theme-opt, .nav::before { transition: none; }
+    .sun-arc .sun { transition: none; }
+    .gauge-hand, .compass-arrow, .geo-btn, .day-tab, .back, .theme-thumb, .theme-opt, .nav::before { transition: none; }
     .nav::before { transform: none; }
     .geo-btn:active { opacity: 0.6; transform: none; }
     .day-tab:active { opacity: 0.6; transform: none; }
@@ -451,31 +492,31 @@
   <div class="col-side">
 
   <div class="stats-grid" id="stats-grid">
-    <div class="stat-card" id="card-uv" hidden><p class="s-label"><span class="icon-badge icon-uv"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4.5" y1="4.5" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.5" y2="19.5"/><line x1="4.5" y1="19.5" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.5" y2="4.5"/></svg></span>Indice UV</p><p class="s-value" id="stat-uv">&hellip;</p></div>
-    <div class="stat-card" id="card-sun" hidden>
-      <p class="s-label"><span class="icon-badge icon-sunrise"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4"/><path d="M5.6 8.6l1.8 1.8"/><path d="M16.6 8.6l-1.8 1.8"/><path d="M3 14h2.5"/><path d="M18.5 14H21"/><path d="M6 18h12"/><path d="M8 14a4 4 0 0 1 8 0"/><path d="M2 21h20"/></svg></span>Alba &middot; Tramonto</p>
-      <div class="sun-row">
-        <div><p class="s-value" id="stat-sunrise" data-size="sm">&hellip;</p></div>
-        <div class="sun-sep"></div>
-        <div><p class="s-value" id="stat-sunset" data-size="sm">&hellip;</p></div>
+    <div class="stat-card gauge-card" id="uv-card" role="img" aria-label="Indice UV" hidden>
+      <p class="s-label"><span class="icon-badge icon-uv"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4.5" y1="4.5" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.5" y2="19.5"/><line x1="4.5" y1="19.5" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.5" y2="4.5"/></svg></span>Indice UV</p>
+      <div class="gauge gauge-uv">
+        <div class="gauge-arc"></div>
+        <span class="gauge-cap" style="--a:-135deg;--c:#34c759"></span>
+        <span class="gauge-cap" style="--a:135deg;--c:#af52de"></span>
+        <div class="gauge-hand" id="uv-marker" style="transform:rotate(-135deg)"><span class="gauge-dot"></span></div>
+        <div class="gauge-center"><p class="s-value" id="uv-label">&hellip;</p><p class="gauge-num" id="uv-num"></p></div>
       </div>
+      <p class="gauge-foot" id="uv-foot"></p>
     </div>
-    <div class="stat-card" id="card-wind" hidden><p class="s-label"><span class="icon-badge icon-wind"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9.5h11a2.8 2.8 0 1 0-2.8-2.8"/><path d="M2.5 14.5h15.5a2.8 2.8 0 1 1-2.8 2.8"/><path d="M2.5 19h9a2.2 2.2 0 1 0-2.2-2.2"/></svg></span>Vento</p><p class="s-value" id="stat-wind">&hellip;</p><p class="s-sub" id="stat-wind-dir"></p></div>
-    <div class="stat-card" id="card-moon" hidden><p class="s-label"><span class="icon-badge icon-moon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 12.5a7.5 7.5 0 0 1-9.9-9.9 8 8 0 1 0 9.9 9.9z"/><circle cx="19" cy="5" r="0.6" fill="currentColor" stroke="none"/><circle cx="20.5" cy="8.5" r="0.4" fill="currentColor" stroke="none"/></svg></span>Fase lunare</p><p class="s-value" id="stat-moon" data-size="xs">&hellip;</p></div>
-    <div class="stat-card" id="card-visibility" hidden>
-      <p class="s-label"><span class="icon-badge icon-visibility"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9c1.8-1.8 3.8-2.7 6-2.7"/><path d="M2 12.5c2.5-2.2 5-3.3 10-3.3s7.5 1.1 10 3.3"/><path d="M2 16c3.2-1.3 6.2-2 10-2s6.8.7 10 2"/></svg></span>Visibilit&agrave; &middot; Neve</p>
-      <div class="sun-row">
-        <div><p class="s-value" id="stat-visibility" data-size="sm">&hellip;</p><p class="s-sub" id="stat-fog-note"></p></div>
-        <div class="sun-sep"></div>
-        <div><p class="s-value" id="stat-snow" data-size="sm">&hellip;</p></div>
+    <div class="stat-card compass-card" id="card-wind" hidden>
+      <p class="s-label"><span class="icon-badge icon-wind"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9.5h11a2.8 2.8 0 1 0-2.8-2.8"/><path d="M2.5 14.5h15.5a2.8 2.8 0 1 1-2.8 2.8"/><path d="M2.5 19h9a2.2 2.2 0 1 0-2.2-2.2"/></svg></span>Vento</p>
+      <div class="compass">
+        <svg class="compass-face" viewBox="0 0 120 120" aria-hidden="true"><line class="tick major" x1="60.0" y1="11.0" x2="60.0" y2="3.0"/><line class="tick" x1="69.2" y1="7.8" x2="69.9" y2="3.9"/><line class="tick" x1="78.1" y1="10.2" x2="79.5" y2="6.4"/><line class="tick" x1="86.5" y1="14.1" x2="88.5" y2="10.6"/><line class="tick" x1="94.1" y1="19.4" x2="96.6" y2="16.3"/><line class="tick" x1="100.6" y1="25.9" x2="103.7" y2="23.4"/><line class="tick" x1="105.9" y1="33.5" x2="109.4" y2="31.5"/><line class="tick" x1="109.8" y1="41.9" x2="113.6" y2="40.5"/><line class="tick" x1="112.2" y1="50.8" x2="116.1" y2="50.1"/><line class="tick major" x1="109.0" y1="60.0" x2="117.0" y2="60.0"/><line class="tick" x1="112.2" y1="69.2" x2="116.1" y2="69.9"/><line class="tick" x1="109.8" y1="78.1" x2="113.6" y2="79.5"/><line class="tick" x1="105.9" y1="86.5" x2="109.4" y2="88.5"/><line class="tick" x1="100.6" y1="94.1" x2="103.7" y2="96.6"/><line class="tick" x1="94.1" y1="100.6" x2="96.6" y2="103.7"/><line class="tick" x1="86.5" y1="105.9" x2="88.5" y2="109.4"/><line class="tick" x1="78.1" y1="109.8" x2="79.5" y2="113.6"/><line class="tick" x1="69.2" y1="112.2" x2="69.9" y2="116.1"/><line class="tick major" x1="60.0" y1="109.0" x2="60.0" y2="117.0"/><line class="tick" x1="50.8" y1="112.2" x2="50.1" y2="116.1"/><line class="tick" x1="41.9" y1="109.8" x2="40.5" y2="113.6"/><line class="tick" x1="33.5" y1="105.9" x2="31.5" y2="109.4"/><line class="tick" x1="25.9" y1="100.6" x2="23.4" y2="103.7"/><line class="tick" x1="19.4" y1="94.1" x2="16.3" y2="96.6"/><line class="tick" x1="14.1" y1="86.5" x2="10.6" y2="88.5"/><line class="tick" x1="10.2" y1="78.1" x2="6.4" y2="79.5"/><line class="tick" x1="7.8" y1="69.2" x2="3.9" y2="69.9"/><line class="tick major" x1="11.0" y1="60.0" x2="3.0" y2="60.0"/><line class="tick" x1="7.8" y1="50.8" x2="3.9" y2="50.1"/><line class="tick" x1="10.2" y1="41.9" x2="6.4" y2="40.5"/><line class="tick" x1="14.1" y1="33.5" x2="10.6" y2="31.5"/><line class="tick" x1="19.4" y1="25.9" x2="16.3" y2="23.4"/><line class="tick" x1="25.9" y1="19.4" x2="23.4" y2="16.3"/><line class="tick" x1="33.5" y1="14.1" x2="31.5" y2="10.6"/><line class="tick" x1="41.9" y1="10.2" x2="40.5" y2="6.4"/><line class="tick" x1="50.8" y1="7.8" x2="50.1" y2="3.9"/><text class="north" x="60" y="28">N</text><text x="92" y="60">E</text><text x="60" y="92">S</text><text x="28" y="60">O</text></svg>
+        <div class="compass-arrow" id="wind-arrow" style="transform:rotate(0deg)"><svg viewBox="0 0 120 120" aria-hidden="true"><path d="M52 4 L68 4 L60 19 Z"/></svg></div>
+        <div class="gauge-center"><p class="s-value" id="stat-wind">&hellip;</p><p class="gauge-num">km/h</p></div>
       </div>
+      <p class="gauge-foot"><b id="wind-dir"></b><span id="wind-gust"></span></p>
     </div>
-    <div class="stat-card pressure-card" id="card-pressure" data-trend="flat" hidden>
-      <p class="s-label"><span class="icon-badge icon-pressure"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 12l3.5-3.5"/><path d="M12 6.5v.01"/><path d="M17.5 12h.01"/><path d="M6.5 12h.01"/></svg></span> Pressione</p>
-      <p class="s-value" id="stat-pressure">&hellip;</p>
-      <p class="pressure-trend"><i class="ti ti-minus" id="pressure-arrow" aria-hidden="true"></i><span id="pressure-word"></span></p>
-      <svg class="spark" id="pressure-spark" width="72" height="22" viewBox="0 0 72 22" aria-hidden="true" hidden><path class="spark-all" id="spark-all" d=""/><path class="spark-recent" id="spark-recent" d=""/><circle class="spark-dot" id="spark-dot" r="3" cx="0" cy="0"/></svg>
-      <p class="s-sub" id="pressure-detail"></p>
+    <div class="stat-card moon-card" id="card-moon" hidden>
+      <p class="s-label"><span class="icon-badge icon-moon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 12.5a7.5 7.5 0 0 1-9.9-9.9 8 8 0 1 0 9.9 9.9z"/><circle cx="19" cy="5" r="0.6" fill="currentColor" stroke="none"/><circle cx="20.5" cy="8.5" r="0.4" fill="currentColor" stroke="none"/></svg></span>Luna</p>
+      <svg class="moon" id="moon-svg" width="84" height="84" viewBox="0 0 100 100" role="img" aria-label="Fase lunare"><circle class="moon-dark" cx="50" cy="50" r="44"/><path class="moon-lit" id="moon-lit" d=""/><circle class="moon-rim" cx="50" cy="50" r="44"/></svg>
+      <p class="s-value" id="stat-moon" data-size="sm">&hellip;</p>
+      <p class="s-sub" id="moon-sub"></p>
     </div>
     <div class="stat-card gauge-card" id="hum-card" role="img" aria-label="Umidit&agrave;" hidden>
       <p class="s-label"><span class="icon-badge icon-humidity"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5c3 4 6.5 8.2 6.5 12A6.5 6.5 0 0 1 5.5 14.5c0-3.8 3.5-8 6.5-12z"/><path d="M9.3 15.5a2.7 2.7 0 0 0 2.7 2.7"/></svg></span>Umidit&agrave;</p>
@@ -507,6 +548,27 @@
         <div class="gauge-center"><p class="s-value" id="aqi-label">&hellip;</p><p class="gauge-num" id="aqi-num"></p></div>
       </div>
     </div>
+    <div class="stat-card sun-card" id="card-sun" hidden>
+      <p class="s-label"><span class="icon-badge icon-sunrise"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4"/><path d="M5.6 8.6l1.8 1.8"/><path d="M16.6 8.6l-1.8 1.8"/><path d="M3 14h2.5"/><path d="M18.5 14H21"/><path d="M6 18h12"/><path d="M8 14a4 4 0 0 1 8 0"/><path d="M2 21h20"/></svg></span>Alba &middot; Tramonto</p>
+      <svg class="sun-arc" viewBox="0 0 120 60" aria-hidden="true"><defs><linearGradient id="sunGrad" gradientUnits="userSpaceOnUse" x1="10" y1="0" x2="110" y2="0"><stop offset="0" stop-color="#ffcc00"/><stop offset="1" stop-color="#ff9500"/></linearGradient></defs><line class="horizon" x1="2" y1="52" x2="118" y2="52"/><path class="track" d="M10 52 A50 50 0 0 1 110 52" pathLength="100"/><path class="progress" id="sun-progress" d="M10 52 A50 50 0 0 1 110 52" pathLength="100" style="stroke-dasharray:0 100"/><circle class="sun" id="sun-dot" r="5.5" cx="10" cy="52"/></svg>
+      <div class="sun-times"><span id="stat-sunrise">&hellip;</span><span id="stat-sunset">&hellip;</span></div>
+      <p class="s-sub" id="sun-sub"></p>
+    </div>
+    <div class="stat-card" id="card-visibility" hidden>
+      <p class="s-label"><span class="icon-badge icon-visibility"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9c1.8-1.8 3.8-2.7 6-2.7"/><path d="M2 12.5c2.5-2.2 5-3.3 10-3.3s7.5 1.1 10 3.3"/><path d="M2 16c3.2-1.3 6.2-2 10-2s6.8.7 10 2"/></svg></span>Visibilit&agrave; &middot; Neve</p>
+      <div class="sun-row">
+        <div><p class="s-value" id="stat-visibility" data-size="sm">&hellip;</p><p class="s-sub" id="stat-fog-note"></p></div>
+        <div class="sun-sep"></div>
+        <div><p class="s-value" id="stat-snow" data-size="sm">&hellip;</p></div>
+      </div>
+    </div>
+    <div class="stat-card pressure-card" id="card-pressure" data-trend="flat" hidden>
+      <p class="s-label"><span class="icon-badge icon-pressure"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 12l3.5-3.5"/><path d="M12 6.5v.01"/><path d="M17.5 12h.01"/><path d="M6.5 12h.01"/></svg></span> Pressione</p>
+      <p class="s-value" id="stat-pressure">&hellip;</p>
+      <p class="pressure-trend"><i class="ti ti-minus" id="pressure-arrow" aria-hidden="true"></i><span id="pressure-word"></span></p>
+      <svg class="spark" id="pressure-spark" width="72" height="22" viewBox="0 0 72 22" aria-hidden="true" hidden><path class="spark-all" id="spark-all" d=""/><path class="spark-recent" id="spark-recent" d=""/><circle class="spark-dot" id="spark-dot" r="3" cx="0" cy="0"/></svg>
+      <p class="s-sub" id="pressure-detail"></p>
+    </div>
   </div>
 
   <div class="more-wrap" id="more-wrap" hidden>
@@ -537,8 +599,8 @@
   // Rilevanza dei riquadri: in vista compatta ne mostriamo i più utili adesso (da 3 a 9 secondo lo spazio).
   // L'ordine delle chiavi è quello del DOM (a parità di punteggio vince il primo).
   const relevance = {
-    'card-uv': 0, 'card-sun': 35, 'card-wind': 0, 'card-moon': 5,
-    'card-visibility': 10, 'card-pressure': 15, 'hum-card': 20, 'risk-card': 0, 'aqi-card': 0
+    'uv-card': 0, 'card-wind': 0, 'card-moon': 5, 'hum-card': 20, 'risk-card': 0, 'aqi-card': 0,
+    'card-sun': 35, 'card-visibility': 10, 'card-pressure': 15
   };
   const ready = { weather: false, aqi: false, pressure: false };  // si decide solo a dati completi: niente riquadri che saltano
   let showAll = false;
@@ -828,6 +890,46 @@
     return best;
   }
 
+  const WIND_NAMES = ['Nord', 'Nord-Est', 'Est', 'Sud-Est', 'Sud', 'Sud-Ovest', 'Ovest', 'Nord-Ovest'];
+  const degToName = deg => WIND_NAMES[Math.round(deg / 45) % 8];
+
+  // UV: scala OMS (basso / moderato / alto / molto alto / estremo) + fascia in cui serve protezione (UV ≥ 3).
+  function uvWord(u) {
+    if (u < 3) return 'Basso';
+    if (u < 6) return 'Moderato';
+    if (u < 8) return 'Alto';
+    if (u < 11) return 'Molto alto';
+    return 'Estremo';
+  }
+  function renderUV(uv, hourly) {
+    if (uv == null) {
+      document.getElementById('uv-label').textContent = '--';
+      document.getElementById('uv-num').textContent = '';
+      document.getElementById('uv-foot').textContent = '';
+      setGauge('uv', 0, 'Indice UV non disponibile');
+      return;
+    }
+    const word = uvWord(uv);
+    document.getElementById('uv-label').textContent = word;
+    document.getElementById('uv-num').textContent = 'UV ' + uv.toFixed(1).replace('.', ',');
+    const hs = [];
+    (hourly.uv_index || []).slice(0, 24).forEach((v, i) => { if (v >= 3) hs.push(i); });
+    const foot = hs.length ? 'Protezione ' + hs[0] + '\u2013' + (hs[hs.length - 1] + 1) : 'Nessuna protezione necessaria';
+    document.getElementById('uv-foot').textContent = foot;
+    setGauge('uv', Math.min(uv, 11) / 11 * 100, 'Indice UV ' + uv.toFixed(1).replace('.', ',') + ': ' + word + '. ' + foot + '.');
+  }
+
+  // Vento: la freccia sul bordo della bussola indica DA DOVE arriva; ruota per la via più breve.
+  let windAngle = 0;
+  function renderWind(speed, deg, gust) {
+    document.getElementById('stat-wind').textContent = Math.round(speed);
+    document.getElementById('wind-dir').textContent = 'da ' + degToName(deg);
+    document.getElementById('wind-gust').textContent = (gust != null && gust > speed + 1) ? 'raffiche ' + Math.round(gust) + ' km/h' : '';
+    windAngle += ((((deg - windAngle) % 360) + 540) % 360) - 180;
+    document.getElementById('wind-arrow').style.transform = 'rotate(' + windAngle + 'deg)';
+    document.getElementById('card-wind').title = 'Vento ' + Math.round(speed) + ' km/h da ' + degToName(deg);
+  }
+
   function degToCompass(deg) {
     const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
     return dirs[Math.round(deg / 45) % 8];
@@ -836,17 +938,77 @@
   // Fase lunare calcolata localmente (nessuna API la fornisce):
   // età lunare in giorni rispetto a un novilunio di riferimento noto,
   // sul ciclo sinodico medio di 29.53 giorni.
-  function moonPhase(date) {
-    const synodicMonth = 29.530588853;
+
+  /* =====================================================================
+     Arco del sole: posizione calcolata sul tempo tra alba e tramonto (aggiornata ogni minuto)
+     ===================================================================== */
+  let sunTimes = null, sunTarget = 0;
+  const sunSpring = new Spring(0, 0.0005);
+  const hhmm = d => d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  function fmtDur(ms) {
+    const m = Math.max(0, Math.round(ms / 60000)), h = Math.floor(m / 60);
+    return h > 0 ? h + ' h ' + String(m % 60).padStart(2, '0') + ' min' : m + ' min';
+  }
+  // t = 0..1 lungo l'arco (semicerchio di raggio 50 centrato in (60,52)): il tratto percorso e il sole seguono t
+  sunSpring.cb = (t) => {
+    const th = Math.PI * Math.max(0, Math.min(1, t));
+    document.getElementById('sun-progress').style.strokeDasharray = (Math.max(0, Math.min(1, t)) * 100).toFixed(2) + ' 100';
+    const dot = document.getElementById('sun-dot');
+    dot.setAttribute('cx', (60 - 50 * Math.cos(th)).toFixed(2));
+    dot.setAttribute('cy', (52 - 50 * Math.sin(th)).toFixed(2));
+  };
+  function updateSun() {
+    if (!sunTimes) return;
+    const now = new Date(), { rise, set, nextRise } = sunTimes;
+    let t, day = false, text;
+    if (now < rise) { t = 0; text = 'Sorge alle ' + hhmm(rise); }
+    else if (now > set) { t = 1; text = nextRise ? 'Sorge domani alle ' + hhmm(nextRise) : 'Sole tramontato'; }
+    else { t = (now - rise) / (set - rise); day = true; text = 'Luce ancora ' + fmtDur(set - now); }
+    sunTarget = t;
+    document.getElementById('sun-sub').textContent = text;
+    document.getElementById('sun-dot').style.opacity = day ? '1' : '0';
+    document.getElementById('card-sun').title = 'Alba ' + hhmm(rise) + ' \u00b7 tramonto ' + hhmm(set) + ' \u00b7 ' + fmtDur(set - rise) + ' di luce';
+    const card = document.getElementById('card-sun');
+    if (card.hidden || prefersReduced()) sunSpring.set(t);
+    else sunSpring.to(t, { damping: 1, response: 0.5 });
+  }
+  // Quando il riquadro compare, il sole "sorge" e percorre l'arco fino alla posizione attuale.
+  function sunReveal() {
+    if (prefersReduced()) { sunSpring.set(sunTarget); return; }
+    sunSpring.set(0);
+    sunSpring.to(sunTarget, { damping: 1, response: 0.9 });
+  }
+
+  // Luna: età, illuminazione e fase calcolate in locale sul ciclo sinodico medio (29,53 giorni).
+  const SYNODIC = 29.530588853;
+  function moonInfo(date) {
     const knownNewMoon = new Date('2000-01-06T18:14:00Z').getTime();
     const diffDays = (date.getTime() - knownNewMoon) / 86400000;
-    const age = ((diffDays % synodicMonth) + synodicMonth) % synodicMonth;
+    const age = ((diffDays % SYNODIC) + SYNODIC) % SYNODIC;
+    const p = age / SYNODIC;
     const names = [
       'Luna nuova', 'Luna crescente', 'Primo quarto', 'Gibbosa crescente',
       'Luna piena', 'Gibbosa calante', 'Ultimo quarto', 'Luna calante'
     ];
-    const idx = Math.floor((age / synodicMonth) * 8) % 8;
-    return names[idx];
+    return { age, p, name: names[Math.floor(p * 8) % 8], illum: (1 - Math.cos(2 * Math.PI * p)) / 2, waxing: p < 0.5 };
+  }
+  // Parte illuminata: semicerchio esterno + arco ellittico del terminatore (destra se cresce, sinistra se cala).
+  function moonPath(p) {
+    const r = 44, c = 50, rx = r * Math.abs(Math.cos(2 * Math.PI * p));
+    let s1, s2;
+    if (p < 0.5) { s1 = 1; s2 = p < 0.25 ? 0 : 1; } else { s1 = 0; s2 = p > 0.75 ? 1 : 0; }
+    return `M ${c} ${c - r} A ${r} ${r} 0 0 ${s1} ${c} ${c + r} A ${rx.toFixed(2)} ${r} 0 0 ${s2} ${c} ${c - r} Z`;
+  }
+  function renderMoon(date) {
+    const m = moonInfo(date);
+    const pct = Math.round(m.illum * 100);
+    const days = m.waxing ? (SYNODIC / 2 - m.age) : (SYNODIC - m.age);
+    const n = Math.round(days);
+    const when = n <= 0 ? 'oggi' : (n === 1 ? 'domani' : 'tra ' + n + ' giorni');
+    document.getElementById('moon-lit').setAttribute('d', moonPath(m.p));
+    document.getElementById('stat-moon').textContent = m.name;
+    document.getElementById('moon-sub').textContent = pct + '% \u00b7 ' + (m.waxing ? 'piena ' : 'nuova ') + when;
+    document.getElementById('moon-svg').setAttribute('aria-label', m.name + ', ' + pct + '% illuminata');
   }
 
   function loadRadar() {
@@ -995,15 +1157,17 @@
       // UV attuale: preso dal valore orario più vicino all'ora corrente
       const nowIdx = findClosestHourIndex(d.hourly.time);
       const uvNow = (nowIdx != null && d.hourly.uv_index) ? d.hourly.uv_index[nowIdx] : null;
-      document.getElementById('stat-uv').textContent = uvNow != null ? uvNow.toFixed(1) : '--';
+      renderUV(uvNow, d.hourly);
 
       const sunriseTime = new Date(d.daily.sunrise[0]);
       const sunsetTime = new Date(d.daily.sunset[0]);
       document.getElementById('stat-sunrise').textContent = sunriseTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
       document.getElementById('stat-sunset').textContent = sunsetTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      sunTimes = { rise: sunriseTime, set: sunsetTime, nextRise: d.daily.sunrise[1] ? new Date(d.daily.sunrise[1]) : null };
+      updateSun();
 
-      document.getElementById('stat-wind').textContent = Math.round(d.current.wind_speed_10m) + ' km/h';
-      document.getElementById('stat-wind-dir').textContent = degToCompass(d.current.wind_direction_10m);
+      const gustNow = d.hourly.wind_gusts_10m ? d.hourly.wind_gusts_10m[nowIdx] : null;
+      renderWind(d.current.wind_speed_10m, d.current.wind_direction_10m, gustNow);
 
       // Umidità: scala centrata (il comfort sta in mezzo) + punto di rugiada
       const rh = d.current.relative_humidity_2m;
@@ -1021,11 +1185,10 @@
 
       document.getElementById('stat-pressure').textContent = Math.round(d.current.surface_pressure) + ' hPa';
 
-      const moon = moonPhase(new Date());
-      document.getElementById('stat-moon').textContent = moon;
+      renderMoon(new Date());
 
       // rilevanza per la vista compatta
-      relevance['card-uv'] = uvNow != null ? Math.min(100, uvNow * 12) : 0;
+      relevance['uv-card'] = uvNow != null ? Math.min(100, uvNow * 12) : 0;
       relevance['card-wind'] = Math.min(100, d.current.wind_speed_10m * 2.5);
       const nowT = new Date();
       relevance['card-moon'] = (nowT < sunriseTime || nowT > sunsetTime) ? 45 : 5;
@@ -1318,6 +1481,7 @@
       const visible = showAll || top.has(id);
       const was = !el.hidden;
       el.hidden = !visible;
+      if (visible && !was && id === 'card-sun') sunReveal();
       if (visible && !was && !prefersReduced()) {
         el.classList.remove('card-enter');
         void el.offsetWidth;                      // riavvia l'animazione
@@ -1425,6 +1589,7 @@
   });
   applyTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light', false);
 
+  setInterval(updateSun, 60000);
   useMyLocation(true);
   setTimeout(() => location.reload(), 20 * 60 * 1000);
 </script>
