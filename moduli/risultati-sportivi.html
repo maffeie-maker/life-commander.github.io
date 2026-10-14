@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Risultati sportivi · Life Commander</title>
+<style>
+:root{--bg:#f5f5f7;--card:#fff;--tx:#1c1c1e;--tx2:#6e6e73;--line:rgba(60,60,67,.12);--seg:rgba(118,118,128,.12);--thumb:#fff;--acc:#0a84ff;--live:#ff3b30;--bar:rgba(118,118,128,.28);--sh:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.05);--logo:#f2f2f7}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--card:#1c1c1e;--tx:#f5f5f7;--tx2:#98989d;--line:rgba(255,255,255,.1);--seg:rgba(118,118,128,.24);--thumb:#636366;--bar:rgba(255,255,255,.25);--sh:none;--logo:#2c2c2e}}
+:root[data-theme="dark"]{--bg:#000;--card:#1c1c1e;--tx:#f5f5f7;--tx2:#98989d;--line:rgba(255,255,255,.1);--seg:rgba(118,118,128,.24);--thumb:#636366;--bar:rgba(255,255,255,.25);--sh:none;--logo:#2c2c2e;color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font:100%/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin:0 auto;padding:0 1rem 3rem}
+h1{font-size:clamp(1.9rem,6vw,2.7rem);line-height:1.05;letter-spacing:-.03em;font-weight:700;margin:.5rem 0 .2rem}
+.back{display:inline-block;margin-top:1rem;color:var(--acc);text-decoration:none;font-size:.95rem;font-weight:500}
+.back:hover{opacity:.7}
+.sub{color:var(--tx2);font-size:.92rem;margin:0 0 .6rem;font-variant-numeric:tabular-nums}
+.hd{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;flex-wrap:wrap}
+.ctl{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem}
+.tg{display:inline-flex;background:var(--seg);border-radius:9px;padding:2px}
+.tg button{border:0;background:none;color:var(--tx);font:600 .78rem/1 inherit;font-family:inherit;padding:.5rem .75rem;border-radius:7px;cursor:pointer;transition:transform .1s ease-out}
+.tg button:active{transform:scale(.95)}
+.tg button[aria-pressed=true]{background:var(--thumb);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.bar{position:sticky;top:0;z-index:5;padding:.6rem 0;background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%)}
+.seg{position:relative;display:grid;grid-template-columns:repeat(5,1fr);background:var(--seg);border-radius:11px;padding:2px;max-width:640px}
+.thumb{position:absolute;top:2px;bottom:2px;left:2px;width:calc((100% - 4px)/5);background:var(--thumb);border-radius:9px;box-shadow:0 2px 6px rgba(0,0,0,.14);transition:transform .38s cubic-bezier(.32,.72,0,1)}
+.seg button{position:relative;z-index:1;border:0;background:none;color:var(--tx);font:600 .84rem/1 inherit;font-family:inherit;padding:.65rem .1rem;border-radius:9px;cursor:pointer;transition:transform .1s ease-out}
+.seg button:active{transform:scale(.96)}
+h2{font-size:1.15rem;letter-spacing:-.01em;margin:1.6rem .2rem .7rem}
+h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--tx2);margin:1.3rem 0 .4rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:.8rem}
+.card{background:var(--card);border-radius:20px;padding:1rem 1.1rem 1.05rem;box-shadow:var(--sh);transition:transform .12s ease-out,box-shadow .4s;position:relative;cursor:pointer}
+.card.new{animation:in .5s cubic-bezier(.32,.72,0,1) both}
+.card:active{transform:scale(.98)}
+.card.hot{box-shadow:0 0 0 2px var(--live),0 8px 28px rgba(255,59,48,.25)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:.5rem;font-size:.74rem;font-weight:600;letter-spacing:.02em;color:var(--tx2);margin-bottom:.8rem;text-transform:uppercase}
+.lg{opacity:.8}
+.live{color:var(--live);display:flex;align-items:center;gap:.35rem}
+.live i{width:.5rem;height:.5rem;border-radius:50%;background:var(--live);animation:p 1.6s ease-in-out infinite}
+.gol{background:var(--live);color:#fff;border-radius:6px;padding:.1rem .4rem;font-size:.68rem;letter-spacing:.04em}
+.m{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:.4rem}
+.t{display:flex;flex-direction:column;align-items:center;gap:.45rem;min-width:0;text-align:center}
+.b{flex:none;width:3.4rem;height:3.4rem;border-radius:50%;display:grid;place-items:center;font-size:.74rem;font-weight:700;background:var(--logo);overflow:hidden;padding:.45rem}
+.b img{width:100%;height:100%;object-fit:contain}
+.n{font-size:.92rem;letter-spacing:-.01em;line-height:1.2;max-width:100%;overflow-wrap:anywhere}
+.s{display:flex;align-items:center;gap:.45rem;height:3.4rem;font-size:2.2rem;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.s .d{color:var(--tx2);font-weight:300}.s .lo{color:var(--tx2);font-weight:400}
+.w .n{font-weight:650}.l .n{color:var(--tx2)}
+.sc{margin-top:.55rem;font-size:.8rem;color:var(--tx2)}
+.err{color:var(--live)}
+.empty{color:var(--tx2);text-align:center;padding:3rem 0}
+.tw{overflow-x:auto;border-radius:20px;box-shadow:var(--sh)}
+.tbl{width:100%;border-collapse:collapse;background:var(--card);font-variant-numeric:tabular-nums;font-size:.92rem}
+.tbl th{font-size:.7rem;color:var(--tx2);text-transform:uppercase;letter-spacing:.03em;text-align:right;padding:.8rem .55rem;font-weight:600}
+.tbl td{padding:.5rem .55rem;text-align:right;border-top:1px solid var(--line)}
+.tbl th:first-child,.tbl td:first-child{text-align:left;padding-left:1rem}
+.tl{display:flex;align-items:center;gap:.6rem;min-width:11rem}
+.tl .pos{width:1.4rem;color:var(--tx2);text-align:right}
+.tl img,.tl .ph{width:1.7rem;height:1.7rem;object-fit:contain;flex:none}
+.tl .ph{display:grid;place-items:center;font-size:.55rem;font-weight:700;background:var(--logo);border-radius:50%}
+.tbl td.pt{font-weight:700}
+.ov{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+.ov.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:50%;bottom:0;z-index:21;width:min(560px,100%);max-height:88vh;overflow:auto;overscroll-behavior:contain;background:var(--card);border-radius:24px 24px 0 0;padding:0 1.2rem calc(1.5rem + env(safe-area-inset-bottom,0px));transform:translate(-50%,105%);transition:transform .45s cubic-bezier(.32,.72,0,1);box-shadow:0 -10px 40px rgba(0,0,0,.2)}
+.sheet.on{transform:translate(-50%,0)}
+.sheet.drag{transition:none}
+.gh{position:sticky;top:0;background:var(--card);padding:.6rem 0 .6rem;touch-action:none;cursor:grab;z-index:2}
+.grab{width:2.4rem;height:5px;border-radius:3px;background:var(--bar);margin:0 auto}
+.x{position:absolute;right:0;top:.25rem;border:0;background:var(--seg);color:var(--tx2);width:1.8rem;height:1.8rem;border-radius:50%;font-size:.9rem;cursor:pointer}
+.meta{color:var(--tx2);font-size:.85rem;text-align:center;margin:.9rem 0 0}
+.ev{display:grid;grid-template-columns:3.2rem 1.6rem 1fr auto;gap:.4rem;align-items:center;padding:.55rem 0;border-top:1px solid var(--line);font-size:.93rem}
+.mn{color:var(--tx2);font-variant-numeric:tabular-nums;font-size:.85rem}
+.ls{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.92rem}
+.ls th,.ls td{text-align:center;padding:.45rem .3rem;border-top:1px solid var(--line)}.ls th{color:var(--tx2);font-size:.72rem;border-top:0}.ls td:first-child{text-align:left}
+.none{color:var(--tx2);font-size:.9rem}
+@keyframes in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes p{50%{opacity:.35;transform:scale(.8)}}
+@media (prefers-reduced-motion:reduce){.card,.card.new{animation:none;transition:none}.thumb,.sheet,.ov{transition:opacity .2s}.sheet{transform:translate(-50%,0);opacity:0;pointer-events:none}.sheet.on{opacity:1;pointer-events:auto}.live i{animation:none}}
+@media (prefers-reduced-transparency:reduce){.bar{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--bg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="../index.html">‹ Life Commander</a>
+<div class="hd"><h1>Risultati sportivi</h1>
+ <div class="ctl"><div class="tg"><button id="al" aria-pressed="false">Avvisi gol: off</button></div>
+ <div class="tg" id="tg"><button data-t="light">Chiaro</button><button data-t="dark">Scuro</button></div></div></div>
+<p class="sub" id="st">Caricamento…</p>
+<div class="bar"><div class="seg" id="seg"><div class="thumb" id="th"></div></div></div>
+<div id="out"></div>
+</div>
+<div class="ov" id="ov"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="gh" id="gh"><div class="grab"></div><button class="x" id="x" aria-label="Chiudi">✕</button></div><div id="sb"></div></div>
+<script>
+const EVERY=120,HOT=180000;
+const SRC=[["ita.1","soccer","Serie A"],["uefa.champions","soccer","Champions"],["nfl","football","NFL"]];
+const TABS=[["all","Tutti"],["ita.1","Serie A"],["uefa.champions","Champions"],["nfl","NFL"],["cls","Classifica"]];
+const STD=[["ita.1","Serie A"],["uefa.champions","Champions"]];
+let games={},tab="all",left=EVERY,errs=[],lastOk=null,seen=new Set(),openId=null,stdLg="ita.1",stand={},alerts=false;
+let S={};try{S=JSON.parse(localStorage.getItem("lc-ris-state")||"{}")}catch(e){}
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ymd=d=>d.toISOString().slice(0,10).replace(/-/g,"");
+const when=d=>d.toLocaleString("it-IT",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+const $=id=>document.getElementById(id);
+
+/* ---------- rete ---------- */
+const BASES=["https://site.api.espn.com"];
+async function getJSON(paths){let why="";
+  for(const p of paths)for(const b of BASES){
+    try{const r=await fetch(b+p);if(!r.ok)throw new Error("HTTP "+r.status);return await r.json()}
+    catch(e){why=paths.indexOf(p)+(b[0]=="/"?"p":"d")+" "+e.message}}
+  throw new Error(why)}
+async function loadOne([lg,sp,name]){
+  const da=new Date(Date.now()-3*864e5),db=new Date(Date.now()+3*864e5);
+  const p=`/apis/site/v2/sports/${sp}/${lg}/scoreboard`;
+  const j=await getJSON([p+`?dates=${ymd(da)}-${ymd(db)}`,p+`?limit=100`,p]);
+  return (j.events||[]).map(ev=>{
+    const c=ev.competitions[0],t=x=>c.competitors.find(k=>k.homeAway==x),H=t("home"),A=t("away");
+    const side=k=>({id:k.team.id,n:k.team.shortDisplayName||k.team.displayName,ab:k.team.abbreviation,logo:k.team.logo,s:+(k.score||0),ls:(k.linescores||[]).map(x=>x.displayValue??x.value)});
+    const evs=(c.details||[]).map(d=>({m:d.clock?.displayValue||"",g:!!d.scoringPlay,y:!!d.yellowCard,r:!!d.redCard,pk:!!d.penaltyKick,og:!!d.ownGoal,
+      p:d.athletesInvolved?.[0]?.displayName||d.athletesInvolved?.[0]?.shortName||"",
+      ab:d.team?.id==H.team.id?H.team.abbreviation:d.team?.id==A.team.id?A.team.abbreviation:""}));
+    const lastG=evs.filter(e=>e.g).pop();
+    return{id:lg+ev.id,lg,name,st:ev.status.type.state,det:ev.status.type.shortDetail,t:new Date(ev.date),h:side(H),a:side(A),ev:evs,venue:c.venue?.fullName||"",
+      last:lastG?`${lastG.m} ${lastG.p}`.trim():""}});
+}
+async function load(){
+  errs=[];const goals=[];
+  const res=await Promise.allSettled(SRC.map(loadOne));
+  res.forEach((r,i)=>{
+    if(r.status!="fulfilled"){errs.push(SRC[i][2]+" ("+(r.reason&&r.reason.message||"?")+")");return}
+    r.value.forEach(g=>{
+      const sc=g.h.s+"-"+g.a.s,p=S[g.id];
+      if(!p)S[g.id]={sc,ch:0};
+      else if(p.sc!=sc){
+        const sum=x=>x.split("-").reduce((u,v)=>u+(+v||0),0);
+        if(g.st=="in"&&sum(sc)>sum(p.sc))goals.push(g);
+        p.sc=sc;p.ch=Date.now()}
+      g.ch=S[g.id].ch;games[g.id]=g});
+  });
+  if(errs.length<SRC.length)lastOk=new Date();
+  try{localStorage.setItem("lc-ris-state",JSON.stringify(S))}catch(e){}
+  left=EVERY;render();if(openId)renderSheet();
+  if(tab=="cls")loadStand(stdLg);
+  if(alerts)goals.forEach(notify);
+}
+
+/* ---------- avvisi gol ---------- */
+function beep(){try{const c=beep.c||(beep.c=new(window.AudioContext||window.webkitAudioContext)());if(c.state=="suspended")c.resume();
+  [880,1175].forEach((f,i)=>{const o=c.createOscillator(),v=c.createGain(),t=c.currentTime+i*.14;o.frequency.value=f;o.connect(v);v.connect(c.destination);
+    v.gain.setValueAtTime(.0001,t);v.gain.exponentialRampToValueAtTime(.2,t+.02);v.gain.exponentialRampToValueAtTime(.0001,t+.28);o.start(t);o.stop(t+.3)})}catch(e){}}
+function notify(g){beep();
+  if("Notification" in window&&Notification.permission=="granted")
+    try{new Notification(g.lg=="nfl"?"Punti!":"GOL!",{body:`${g.h.n} ${g.h.s}–${g.a.s} ${g.a.n}`+(g.last?` · ${g.last}`:"")})}catch(e){}}
+function showAl(){const b=$("al");b.setAttribute("aria-pressed",alerts);
+  b.textContent="Avvisi gol: "+(alerts?"on":"off")+(alerts&&"Notification" in window&&Notification.permission=="denied"?" (solo suono)":"")}
+$("al").addEventListener("click",async()=>{
+  if(!alerts){if("Notification" in window&&Notification.permission=="default"){try{await Notification.requestPermission()}catch(e){}}alerts=true;beep()}
+  else alerts=false;
+  try{localStorage.setItem("lc-ris-alerts",alerts?"1":"0")}catch(e){}showAl()});
+try{alerts=localStorage.getItem("lc-ris-alerts")=="1"}catch(e){}showAl();
+
+/* ---------- schede ---------- */
+function team(x,cls){
+  const logo=x.logo?`<img src="${esc(x.logo)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode('${esc(x.ab)}'))">`:esc(x.ab);
+  return `<div class="t ${cls}"><div class="b">${logo}</div><div class="n">${esc(x.n)}</div></div>`}
+const isHot=g=>g.st=="in"&&g.ch&&Date.now()-g.ch<HOT;
+const lab=(g,hot)=>g.st=="in"?`<span class="live"><i></i>${esc(g.det)}${hot?' <span class="gol">GOL</span>':""}</span>`:g.st=="post"?"Finale":esc(when(g.t));
+function mid(g){
+  const done=g.st!="pre";
+  const hc=done&&g.h.s>g.a.s?"w":done&&g.h.s<g.a.s?"l":"",ac=done&&g.a.s>g.h.s?"w":done&&g.a.s<g.h.s?"l":"";
+  return `<div class="m">${team(g.h,hc)}<div class="s">${done?`<span class="${hc=="l"?"lo":""}">${g.h.s}</span><span class="d">–</span><span class="${ac=="l"?"lo":""}">${g.a.s}</span>`:`<span class="d">vs</span>`}</div>${team(g.a,ac)}</div>`}
+function card(g){
+  const hot=isHot(g),isNew=!seen.has(g.id);seen.add(g.id);
+  return `<div class="card${hot?" hot":""}${isNew?" new":""}" data-id="${esc(g.id)}"><div class="top"><span>${lab(g,hot)}</span><span class="lg">${esc(g.name)}</span></div>${mid(g)}${g.st=="in"&&g.last?`<div class="sc">Ultimo gol: ${esc(g.last)}</div>`:""}</div>`}
+
+/* ---------- classifica ---------- */
+function parseStand(j){
+  const groups=j.children&&j.children.length?j.children:[j];
+  return groups.map(gr=>{
+    const rows=(gr.standings?.entries||[]).map(en=>{
+      const st=n=>{const s=(en.stats||[]).find(x=>x.name==n||x.abbreviation==n);return s?(s.displayValue??s.value):"–"};
+      const tm=en.team||{};
+      return{rank:+st("rank")||0,n:tm.shortDisplayName||tm.displayName||"?",ab:tm.abbreviation||"",logo:tm.logos?.[0]?.href||tm.logo,
+        gp:st("gamesPlayed"),w:st("wins"),d:st("ties"),l:st("losses"),gd:st("pointDifferential"),pts:st("points")}});
+    if(rows.every(r=>r.rank))rows.sort((a,b)=>a.rank-b.rank);else rows.sort((a,b)=>(+b.pts||0)-(+a.pts||0));
+    return{name:gr.name||"",rows}}).filter(g=>g.rows.length)}
+async function loadStand(lg){
+  try{const j=await getJSON([`/apis/v2/sports/soccer/${lg}/standings`]);stand[lg]=parseStand(j);stand.err=null}
+  catch(e){stand.err=e.message}
+  if(tab=="cls")render()}
+function renderStand(){
+  const d=stand[stdLg];
+  let o=`<div class="tg" id="sg" style="margin:1rem 0 .2rem">${STD.map(([k,n])=>`<button data-k="${k}" aria-pressed="${k==stdLg}">${n}</button>`).join("")}</div>`;
+  if(!d)o+=`<p class="empty">${stand.err?'<span class="err">Classifica non disponibile ('+esc(stand.err)+')</span>':"Caricamento…"}</p>`;
+  else if(!d.length)o+=`<p class="empty">Nessun dato di classifica disponibile.</p>`;
+  else o+=d.map(gr=>`${d.length>1&&gr.name?`<h2>${esc(gr.name)}</h2>`:""}<div class="tw" style="margin-top:.8rem"><table class="tbl"><thead><tr><th>Squadra</th><th>G</th><th>V</th><th>N</th><th>P</th><th>DR</th><th>Pt</th></tr></thead><tbody>${
+    gr.rows.map(r=>`<tr><td><div class="tl"><span class="pos">${r.rank||""}</span>${r.logo?`<img src="${esc(r.logo)}" alt="" referrerpolicy="no-referrer">`:`<span class="ph">${esc(r.ab)}</span>`}<span>${esc(r.n)}</span></div></td><td>${esc(r.gp)}</td><td>${esc(r.w)}</td><td>${esc(r.d)}</td><td>${esc(r.l)}</td><td>${esc(r.gd)}</td><td class="pt">${esc(r.pts)}</td></tr>`).join("")}</tbody></table></div>`).join("");
+  return o}
+
+/* ---------- render ---------- */
+function render(){
+  let o="";
+  if(tab=="cls")o=renderStand();
+  else{
+    const all=Object.values(games).filter(g=>tab=="all"||g.lg==tab);
+    const live=all.filter(g=>g.st=="in").sort((a,b)=>b.ch-a.ch||a.t-b.t);
+    const post=all.filter(g=>g.st=="post").sort((a,b)=>b.t-a.t);
+    const pre=all.filter(g=>g.st=="pre").sort((a,b)=>a.t-b.t);
+    for(const[t,l]of[["In diretta",live],["Risultati",post],["Prossime partite",pre]])
+      if(l.length)o+=`<h2>${t}</h2><div class="grid">${l.map(card).join("")}</div>`;
+    if(!o)o=`<p class="empty">${errs.length?"Impossibile caricare i dati.":"Nessuna partita in questa finestra di giorni."}</p>`}
+  $("out").innerHTML=o;
+  const i=TABS.findIndex(t=>t[0]==tab);$("th").style.transform=`translateX(${i*100}%)`;
+}
+$("out").addEventListener("click",e=>{
+  const sg=e.target.closest("#sg button");
+  if(sg){stdLg=sg.dataset.k;render();if(!stand[stdLg])loadStand(stdLg);return}
+  const c=e.target.closest(".card");if(c)openSheet(c.dataset.id)});
+
+/* ---------- dettaglio partita ---------- */
+const sheet=$("sheet"),ov=$("ov");
+function renderSheet(){
+  const g=games[openId];if(!g){closeSheet();return}
+  const keep=sheet.scrollTop;let o=`<div class="top"><span>${lab(g,isHot(g))}</span><span class="lg">${esc(g.name)}</span></div>${mid(g)}`;
+  if(g.venue)o+=`<p class="meta">${esc(g.venue)}</p>`;
+  if(g.lg!="nfl"){
+    const L=g.ev.filter(e=>e.g||e.y||e.r);
+    o+=`<h3>Cronaca</h3>`+(L.length?L.map(e=>`<div class="ev"><span class="mn">${esc(e.m)}</span><span>${e.g?"⚽":e.r?"🟥":"🟨"}</span><span>${esc(e.p)}${e.og?" (autogol)":e.pk?" (rig.)":""}</span><span class="mn">${esc(e.ab)}</span></div>`).join(""):`<p class="none">${g.st=="pre"?"La partita non è ancora iniziata.":"Nessun evento disponibile."}</p>`)
+  }else{
+    const n=Math.max(g.h.ls.length,g.a.ls.length);
+    if(n&&g.st!="pre")o+=`<h3>Punteggio per quarto</h3><table class="ls"><tr><th></th>${Array.from({length:n},(_,i)=>`<th>${i<4?"Q"+(i+1):"OT"}</th>`).join("")}<th>Tot</th></tr>${[g.h,g.a].map(x=>`<tr><td>${esc(x.ab)}</td>${Array.from({length:n},(_,i)=>`<td>${esc(x.ls[i]??"–")}</td>`).join("")}<td><b>${x.s}</b></td></tr>`).join("")}</table>`;
+    else o+=`<p class="none" style="margin-top:1.2rem">${g.st=="pre"?"La partita non è ancora iniziata.":"Nessun dettaglio disponibile."}</p>`}
+  $("sb").innerHTML=o;sheet.scrollTop=keep}
+function openSheet(id){openId=id;renderSheet();ov.classList.add("on");sheet.classList.add("on");sheet.scrollTop=0}
+function closeSheet(){openId=null;ov.classList.remove("on");sheet.classList.remove("on","drag");sheet.style.transform=""}
+ov.addEventListener("pointerdown",closeSheet);$("x").addEventListener("click",closeSheet);
+document.addEventListener("keydown",e=>{if(e.key=="Escape"&&openId)closeSheet()});
+// trascinamento 1:1 verso il basso, chiusura in base a distanza o velocità
+let dg=null;
+sheet.addEventListener("pointerdown",e=>{if(!e.target.closest("#gh")||e.target.closest("#x"))return;
+  sheet.setPointerCapture(e.pointerId);dg={y0:e.clientY,dy:0,h:[[performance.now(),e.clientY]]};sheet.classList.add("drag")});
+sheet.addEventListener("pointermove",e=>{if(!dg)return;
+  dg.dy=Math.max(0,e.clientY-dg.y0);dg.h.push([performance.now(),e.clientY]);if(dg.h.length>5)dg.h.shift();
+  sheet.style.transform=`translate(-50%,${dg.dy}px)`});
+function endDrag(){if(!dg)return;
+  const a=dg.h[0],b=dg.h[dg.h.length-1],v=(b[1]-a[1])/Math.max(1,b[0]-a[0]);
+  const close=dg.dy>120||v>.6;dg=null;sheet.classList.remove("drag");
+  if(close)closeSheet();else sheet.style.transform=""}
+sheet.addEventListener("pointerup",endDrag);sheet.addEventListener("pointercancel",endDrag);
+
+/* ---------- tab, tema, timer ---------- */
+const seg=$("seg");
+TABS.forEach(([k,t])=>{const b=document.createElement("button");b.textContent=t;
+  b.addEventListener("pointerdown",()=>{tab=k;seen.clear();render();if(k=="cls"&&!stand[stdLg])loadStand(stdLg)});seg.appendChild(b)});
+function tick(){
+  left=Math.max(0,left-1);
+  const m=Math.floor(left/60),s=String(left%60).padStart(2,"0");
+  $("st").innerHTML=(lastOk?`Aggiornato alle ${lastOk.toLocaleTimeString("it-IT")} · `:"")+`prossimo aggiornamento tra ${m}:${s}`+(errs.length?` · <span class="err">errore su ${esc(errs.join(", "))}</span>`:"");
+  if(!left)load()}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&left<EVERY-30)load()});
+setInterval(()=>{if(tab!="cls")render()},30000);
+const root=document.documentElement;
+function setTheme(t,save){root.dataset.theme=t;document.querySelectorAll("#tg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.t==t));if(save)try{localStorage.setItem("lc-ris-theme",t)}catch(e){}}
+let th=null;try{th=localStorage.getItem("lc-ris-theme")}catch(e){}
+setTheme(th||(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"),false);
+document.querySelectorAll("#tg button").forEach(b=>b.addEventListener("pointerdown",()=>setTheme(b.dataset.t,true)));
+setInterval(tick,1000);
+load();
+</script>
+</body>
+</html>
