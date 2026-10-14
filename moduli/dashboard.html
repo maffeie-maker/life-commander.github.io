@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dashboard</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
 <style>
@@ -15,80 +15,121 @@
     color: #1d1d1f;
     overflow: hidden;
   }
+  body {
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  }
 
+  /* ---------- barra in alto: indietro, pagine aperte, aggiungi ---------- */
   .top-bar {
+    flex: none;
     display: flex;
     align-items: center;
-    padding: 14px 20px 6px;
+    gap: 12px;
+    padding: 12px 16px 8px;
   }
-
   .back {
+    flex: none;
     display: inline-flex; align-items: center; gap: 4px;
-    font-size: 13px; color: #0071e3; text-decoration: none;
+    font-size: 13px; color: #0071e3; text-decoration: none; white-space: nowrap;
   }
-
-  .stage {
-    position: relative;
-    height: calc(100vh - 50px);
-    margin: 0 14px 14px;
-    --split-1: 26%;
-    --split-2: 74%;
+  .chips {
+    flex: 1; min-width: 0;
+    display: flex; gap: 8px;
+    overflow-x: auto; scrollbar-width: none;
+    padding: 2px;
   }
-
-  .col {
-    position: absolute;
-    top: 0;
-    height: 100%;
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: none;
+    display: inline-flex; align-items: center; gap: 6px;
     background: #fff;
-    border-radius: 28px;
+    border: 0.5px solid rgba(0,0,0,0.08);
+    border-radius: 999px;
+    padding: 5px 6px 5px 12px;
+    font-size: 13px; white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .chip button {
+    width: 20px; height: 20px; padding: 0;
+    display: grid; place-items: center;
+    border: 0; border-radius: 50%;
+    background: rgba(0,0,0,0.06); color: #6e6e73;
+    font-size: 11px; cursor: pointer;
+    transition: transform .1s ease-out, background .15s;
+  }
+  .chip button:hover { background: rgba(0,0,0,0.12); }
+  .chip button:active { transform: scale(.9); }
+  .chip button:disabled { opacity: .35; cursor: default; }
+
+  .add { position: relative; flex: none; }
+  .add-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    border: 0; border-radius: 999px;
+    background: #0071e3; color: #fff;
+    font: 600 13px/1 inherit; font-family: inherit;
+    padding: 8px 14px; cursor: pointer;
+    transition: transform .1s ease-out, opacity .15s;
+  }
+  .add-btn:active { transform: scale(.96); }
+  .add-btn:disabled { opacity: .4; cursor: default; }
+  .menu {
+    display: none;
+    position: absolute; right: 0; top: calc(100% + 8px);
+    min-width: 210px; padding: 6px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 0.5px solid rgba(0,0,0,0.08);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    z-index: 50;
+  }
+  .menu.on { display: block; animation: pop .22s cubic-bezier(.32,.72,0,1); }
+  .menu button {
+    display: block; width: 100%; text-align: left;
+    border: 0; background: none; color: inherit;
+    font: 500 14px/1.2 inherit; font-family: inherit;
+    padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  }
+  .menu button:hover { background: rgba(0,0,0,0.06); }
+  @keyframes pop { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+
+  /* ---------- area delle pagine ---------- */
+  .stage {
+    flex: 1; min-height: 0;
+    display: grid;                 /* colonne in orizzontale, righe in verticale: lo imposta lo script */
+    margin: 0 14px 14px;
+  }
+  .panel {
+    min-width: 0; min-height: 0;
+    background: #fff;
+    border-radius: 24px;
     border: 0.5px solid rgba(0,0,0,0.06);
     box-shadow: 0 10px 30px rgba(0,0,0,0.16);
     overflow: hidden;
   }
-
-  .col[data-pos="left"]  { left: 0; width: calc(var(--split-1) - 7px); }
-  .col[data-pos="mid"]   { left: calc(var(--split-1) + 7px); width: calc(var(--split-2) - var(--split-1) - 14px); }
-  .col[data-pos="right"] { left: calc(var(--split-2) + 7px); width: calc(100% - var(--split-2) - 7px); }
-
-  .col iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    display: block;
-  }
+  .panel iframe { width: 100%; height: 100%; border: 0; display: block; }
 
   .divider {
-    position: absolute;
-    top: 0;
-    width: 14px;
-    height: 100%;
-    z-index: 20;
-    cursor: col-resize;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none; outline: none; z-index: 2;
   }
+  .divider::before { content: ""; position: absolute; inset: -8px; }   /* zona di tocco più larga */
+  .divider::after  { content: ""; border-radius: 4px; background: rgba(0,0,0,0.12); transition: background .15s; }
+  .stage[data-dir="row"] .divider { cursor: col-resize; }
+  .stage[data-dir="row"] .divider::after { width: 4px; height: 44px; }
+  .stage[data-dir="col"] .divider { cursor: row-resize; }
+  .stage[data-dir="col"] .divider::after { width: 44px; height: 4px; }
+  .divider:hover::after, .divider.drag::after, .divider:focus-visible::after { background: rgba(0,113,227,0.55); }
 
-  .divider::after {
-    content: "";
-    width: 4px;
-    height: 44px;
-    border-radius: 4px;
-    background: rgba(0,0,0,0.12);
-  }
+  .stage.resizing { user-select: none; }
+  .stage.resizing .panel iframe { pointer-events: none; }
 
-  .divider:hover::after,
-  .divider:active::after { background: rgba(0,113,227,0.5); }
-
-  .divider[data-which="1"] { left: calc(var(--split-1) - 7px); }
-  .divider[data-which="2"] { left: calc(var(--split-2) - 7px); }
-
-  .stage.resizing .col iframe { pointer-events: none; }
-
-  @media (max-width: 900px) {
-    .stage { height: auto; overflow: visible; }
-    .col, .divider { position: static !important; width: 100% !important; height: 60vh; margin-bottom: 14px; }
-    .divider { display: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .menu.on { animation: none; }
+    .chip button, .add-btn { transition: none; }
   }
 </style>
 </head>
@@ -96,71 +137,187 @@
 
 <div class="top-bar">
   <a class="back" href="../index.html"><i class="ti ti-chevron-left" aria-hidden="true"></i> Life Commander</a>
+  <div class="chips" id="chips"></div>
+  <div class="add">
+    <button class="add-btn" id="addBtn" aria-haspopup="true" aria-expanded="false"><i class="ti ti-plus" aria-hidden="true"></i> Aggiungi</button>
+    <div class="menu" id="menu" role="menu"></div>
+  </div>
 </div>
 
-<div class="stage" id="stage">
-  <div class="col" data-pos="left"><iframe src="meteo-posizione.html" title="Meteo"></iframe></div>
-  <div class="col" data-pos="mid"><iframe src="tv-radio.html" title="TV + Radio"></iframe></div>
-  <div class="col" data-pos="right"><iframe src="world-news.html" title="World News"></iframe></div>
-  <div class="divider" data-which="1" id="divider1"></div>
-  <div class="divider" data-which="2" id="divider2"></div>
-</div>
+<div class="stage" id="stage" data-dir="row"></div>
 
 <script>
-  const SPLIT_KEY = 'dashboard-split';
-  const MIN_GAP = 10;
+  /* ---- moduli disponibili: w = peso iniziale (quanto spazio prende rispetto agli altri) ---- */
+  const MODS = {
+    meteo:   { name: 'Meteo',             src: 'meteo-posizione.html',     w: 1   },
+    tvradio: { name: 'TV + Radio',        src: 'tv-radio.html',            w: 2   },
+    news:    { name: 'World News',        src: 'world-news.html',          w: 1.2 },
+    tv:      { name: 'TV',                src: 'tv.html',                  w: 1.6 },
+    radio:   { name: 'Radio',             src: 'radio-commander.html',     w: 1   },
+    sport:   { name: 'Risultati sportivi',src: 'risultati-sportivi.html',  w: 1.4 },
+    multi:   { name: 'Multi Vista',       src: 'multi-vista.html',         w: 2   }
+  };
+  const START = ['meteo', 'tvradio'];   // pagine aperte al primo avvio
+  const MAX = 4;                        // numero massimo di pagine insieme
+  const GAP = 14;                       // spessore dei divisori in px
+  const KEY = 'dashboard-layout-v2';
 
-  function loadSplit(){
-    try { return JSON.parse(localStorage.getItem(SPLIT_KEY)) || { s1: 26, s2: 74 }; }
-    catch(e){ return { s1: 26, s2: 74 }; }
-  }
-  function saveSplit(split){
-    try { localStorage.setItem(SPLIT_KEY, JSON.stringify(split)); } catch(e){}
-  }
+  const $ = id => document.getElementById(id);
+  const stage = $('stage');
 
-  const stage = document.getElementById('stage');
-  const split = loadSplit();
-  stage.style.setProperty('--split-1', split.s1 + '%');
-  stage.style.setProperty('--split-2', split.s2 + '%');
-
-  function apply(){
-    stage.style.setProperty('--split-1', split.s1 + '%');
-    stage.style.setProperty('--split-2', split.s2 + '%');
-  }
-
-  function startDrag(which){
-    stage.classList.add('resizing');
-    function onMove(e){
-      const point = e.touches ? e.touches[0] : e;
-      const rect = stage.getBoundingClientRect();
-      let pct = ((point.clientX - rect.left) / rect.width) * 100;
-      if (which === 1){
-        pct = Math.max(8, Math.min(split.s2 - MIN_GAP, pct));
-        split.s1 = pct;
-      } else {
-        pct = Math.max(split.s1 + MIN_GAP, Math.min(92, pct));
-        split.s2 = pct;
+  /* ---- stato: quali pagine, e le dimensioni separate per orizzontale (row) e verticale (col) ---- */
+  function defaults(ids) { const w = ids.map(i => MODS[i].w); return { ids: ids.slice(), row: w.slice(), col: w.slice() }; }
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(KEY));
+      if (s && Array.isArray(s.ids)) {
+        const ids = s.ids.filter(i => MODS[i]).slice(0, MAX);
+        const ok = a => Array.isArray(a) && a.length === ids.length && a.every(v => v > 0);
+        if (ids.length && ids.length === s.ids.length && ok(s.row) && ok(s.col)) return { ids, row: s.row, col: s.col };
+        if (ids.length) return defaults(ids);
       }
-      apply();
-    }
-    function onUp(){
-      stage.classList.remove('resizing');
-      saveSplit(split);
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      window.removeEventListener('touchmove', onMove);
-      window.removeEventListener('touchend', onUp);
-    }
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    window.addEventListener('touchmove', onMove, { passive: true });
-    window.addEventListener('touchend', onUp);
+    } catch (e) {}
+    return defaults(START);
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  let state = load();
+
+  /* ---- orientamento ---- */
+  const mq = window.matchMedia('(orientation: portrait)');
+  const dirNow = () => mq.matches ? 'col' : 'row';
+  let dir = dirNow();
+
+  /* ---- pagine (gli iframe non vengono mai spostati nel DOM, così non si ricaricano) ---- */
+  const els = {};
+  function syncPanels() {
+    state.ids.forEach(id => {
+      if (els[id]) return;
+      const d = document.createElement('div');
+      d.className = 'panel';
+      d.innerHTML = '<iframe src="' + MODS[id].src + '" title="' + MODS[id].name + '"></iframe>';
+      stage.appendChild(d);
+      els[id] = d;
+    });
+    Object.keys(els).forEach(id => {
+      if (!state.ids.includes(id)) { els[id].remove(); delete els[id]; }
+    });
   }
 
-  document.getElementById('divider1').addEventListener('mousedown', () => startDrag(1));
-  document.getElementById('divider1').addEventListener('touchstart', () => startDrag(1), { passive: true });
-  document.getElementById('divider2').addEventListener('mousedown', () => startDrag(2));
-  document.getElementById('divider2').addEventListener('touchstart', () => startDrag(2), { passive: true });
+  function setTracks() {
+    const tracks = state[dir].map(v => 'minmax(0,' + v + 'fr)').join(' ' + GAP + 'px ');
+    stage.style.gridTemplateColumns = dir === 'row' ? tracks : 'minmax(0,1fr)';
+    stage.style.gridTemplateRows    = dir === 'col' ? tracks : 'minmax(0,1fr)';
+  }
+
+  function layout() {
+    stage.dataset.dir = dir;
+    stage.querySelectorAll('.divider').forEach(d => d.remove());
+    setTracks();
+    const n = state.ids.length;
+    state.ids.forEach((id, i) => {
+      const s = els[id].style, t = 2 * i + 1;
+      if (dir === 'row') { s.gridColumn = t; s.gridRow = 1; } else { s.gridRow = t; s.gridColumn = 1; }
+    });
+    for (let i = 0; i < n - 1; i++) {
+      const d = document.createElement('div');
+      d.className = 'divider';
+      d.setAttribute('role', 'separator');
+      d.setAttribute('aria-orientation', dir === 'row' ? 'vertical' : 'horizontal');
+      d.setAttribute('aria-label', 'Ridimensiona ' + MODS[state.ids[i]].name + ' e ' + MODS[state.ids[i + 1]].name);
+      d.tabIndex = 0;
+      const t = 2 * i + 2;
+      if (dir === 'row') { d.style.gridColumn = t; d.style.gridRow = 1; } else { d.style.gridRow = t; d.style.gridColumn = 1; }
+      bindDivider(d, i);
+      stage.appendChild(d);
+    }
+    renderBar();
+  }
+
+  /* ---- ridimensionamento: trascinamento (mouse e touch) e frecce da tastiera ---- */
+  function bindDivider(d, i) {
+    d.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      d.setPointerCapture(e.pointerId);
+      const sz = state[dir], a0 = sz[i], b0 = sz[i + 1];
+      const sum = sz.reduce((x, y) => x + y, 0);
+      const rect = stage.getBoundingClientRect();
+      const len = (dir === 'row' ? rect.width : rect.height) - GAP * (sz.length - 1);
+      const unit = sum / Math.max(1, len), min = sum * 0.08;
+      const start = dir === 'row' ? e.clientX : e.clientY;
+      stage.classList.add('resizing'); d.classList.add('drag');
+      const move = ev => {
+        const delta = ((dir === 'row' ? ev.clientX : ev.clientY) - start) * unit;
+        const a = Math.max(min, Math.min(a0 + b0 - min, a0 + delta));
+        sz[i] = a; sz[i + 1] = a0 + b0 - a;
+        setTracks();
+      };
+      const up = () => {
+        d.removeEventListener('pointermove', move);
+        d.removeEventListener('pointerup', up);
+        d.removeEventListener('pointercancel', up);
+        stage.classList.remove('resizing'); d.classList.remove('drag');
+        save();
+      };
+      d.addEventListener('pointermove', move);
+      d.addEventListener('pointerup', up);
+      d.addEventListener('pointercancel', up);
+    });
+    d.addEventListener('keydown', e => {
+      const back = dir === 'row' ? 'ArrowLeft' : 'ArrowUp', fwd = dir === 'row' ? 'ArrowRight' : 'ArrowDown';
+      if (e.key !== back && e.key !== fwd) return;
+      e.preventDefault();
+      const sz = state[dir], sum = sz.reduce((x, y) => x + y, 0), step = sum * 0.02, min = sum * 0.08;
+      const total = sz[i] + sz[i + 1];
+      const a = Math.max(min, Math.min(total - min, sz[i] + (e.key === fwd ? step : -step)));
+      sz[i] = a; sz[i + 1] = total - a;
+      setTracks(); save();
+    });
+  }
+
+  /* ---- barra: pagine aperte e menu "Aggiungi" ---- */
+  function renderBar() {
+    const only = state.ids.length < 2;
+    $('chips').innerHTML = state.ids.map(id =>
+      '<span class="chip">' + MODS[id].name +
+      '<button data-rm="' + id + '" aria-label="Chiudi ' + MODS[id].name + '"' + (only ? ' disabled' : '') + '>✕</button></span>'
+    ).join('');
+    const free = Object.keys(MODS).filter(id => !state.ids.includes(id));
+    $('menu').innerHTML = free.map(id => '<button role="menuitem" data-add="' + id + '">' + MODS[id].name + '</button>').join('');
+    const full = state.ids.length >= MAX || !free.length;
+    $('addBtn').disabled = full;
+    $('addBtn').title = full ? 'Massimo ' + MAX + ' pagine insieme: chiudine una per aggiungerne un’altra' : '';
+    if (full) closeMenu();
+  }
+  function openMenu()  { $('menu').classList.add('on');    $('addBtn').setAttribute('aria-expanded', 'true'); }
+  function closeMenu() { $('menu').classList.remove('on'); $('addBtn').setAttribute('aria-expanded', 'false'); }
+
+  function addPanel(id) {
+    if (state.ids.length >= MAX || state.ids.includes(id)) return;
+    const n = state.ids.length;
+    ['row', 'col'].forEach(k => { const avg = state[k].reduce((x, y) => x + y, 0) / n; state[k].push(avg); });
+    state.ids.push(id);
+    syncPanels(); layout(); save();
+  }
+  function removePanel(id) {
+    if (state.ids.length < 2) return;
+    const i = state.ids.indexOf(id);
+    if (i < 0) return;
+    state.ids.splice(i, 1); state.row.splice(i, 1); state.col.splice(i, 1);
+    syncPanels(); layout(); save();
+  }
+
+  $('addBtn').addEventListener('click', e => { e.stopPropagation(); $('menu').classList.contains('on') ? closeMenu() : openMenu(); });
+  $('menu').addEventListener('click', e => { const b = e.target.closest('[data-add]'); if (b) { addPanel(b.dataset.add); closeMenu(); } });
+  $('chips').addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (b) removePanel(b.dataset.rm); });
+  document.addEventListener('click', e => { if (!e.target.closest('.add')) closeMenu(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+  /* ---- cambio di orientamento: si riorganizza senza ricaricare le pagine ---- */
+  const onOrient = () => { const d = dirNow(); if (d !== dir) { dir = d; layout(); } };
+  if (mq.addEventListener) mq.addEventListener('change', onOrient); else mq.addListener(onOrient);
+
+  syncPanels();
+  layout();
 </script>
 
 </body>
