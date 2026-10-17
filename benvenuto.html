@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benvenuto · Life Commander</title>
+<style>
+:root{
+  --bg:#f2f2f7;--glass:rgba(255,255,255,.62);--bar:rgba(242,242,247,.72);--edge:rgba(255,255,255,.75);
+  --tx:#1d1d1f;--tx2:#5e5e63;--ac:#0071e3;--line:rgba(60,60,67,.14);--press:rgba(120,120,128,.14);
+  --sh:0 1px 2px rgba(0,0,0,.04),0 12px 32px rgba(0,0,0,.08);--seg:rgba(120,120,128,.16);--pill:#fff;
+  --b1:rgba(0,113,227,.22);--b2:rgba(175,82,222,.16);--b3:rgba(255,159,10,.16);--cloud:#b7bdc9;
+}
+:root[data-theme=dark]{
+  --bg:#000;--glass:rgba(44,44,46,.55);--bar:rgba(0,0,0,.6);--edge:rgba(255,255,255,.14);
+  --tx:#f5f5f7;--tx2:#a1a1a6;--ac:#2997ff;--line:rgba(255,255,255,.14);--press:rgba(255,255,255,.1);
+  --sh:0 1px 2px rgba(0,0,0,.4),0 16px 40px rgba(0,0,0,.5);--seg:rgba(118,118,128,.28);--pill:#636366;
+  --b1:rgba(41,151,255,.26);--b2:rgba(191,90,242,.2);--b3:rgba(255,159,10,.14);--cloud:#8e8e93;
+}
+*{box-sizing:border-box;margin:0}
+html{font:100%/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;font-optical-sizing:auto;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--tx);min-height:100vh;transition:background-color .4s,color .4s}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(60rem 38rem at 8% -8%,var(--b1),transparent 60%),radial-gradient(48rem 36rem at 100% 8%,var(--b2),transparent 60%),radial-gradient(50rem 36rem at 45% 112%,var(--b3),transparent 60%)}
+
+/* Barra traslucida: il contenuto scorre sotto, bordo che sfuma invece del filetto */
+.bar{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:.7rem clamp(1rem,3vw,2.5rem);
+  background:var(--bar);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}
+.bar::after{content:"";position:absolute;left:0;right:0;top:100%;height:1.25rem;pointer-events:none;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  -webkit-mask-image:linear-gradient(#000,transparent);mask-image:linear-gradient(#000,transparent)}
+.brand{font-size:.95rem;font-weight:600;letter-spacing:.005em}
+.seg{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--seg);border-radius:9px;padding:2px}
+.seg i{position:absolute;top:2px;bottom:2px;left:2px;width:calc(50% - 2px);background:var(--pill);border-radius:7px;box-shadow:0 1px 3px rgba(0,0,0,.18);transition:transform .35s cubic-bezier(.2,.9,.25,1)}
+.seg[data-t=dark] i{transform:translateX(100%)}
+.seg button{position:relative;border:0;background:none;color:var(--tx);font:inherit;font-size:.8rem;font-weight:500;letter-spacing:.01em;padding:.25rem .85rem;cursor:pointer;border-radius:7px}
+.seg button:active{opacity:.6}
+
+main{max-width:1080px;margin:0 auto;padding:1.5rem clamp(1rem,3vw,2.5rem) 4rem}
+.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:1.5rem;flex-wrap:wrap;margin-bottom:2rem}
+h1{font-size:clamp(2.4rem,6.5vw,4.25rem);line-height:1.04;letter-spacing:-.035em;font-weight:700}
+.date{margin-top:.5rem;font-size:1.15rem;letter-spacing:-.005em;color:var(--tx2);font-weight:500;text-transform:capitalize}
+.clock{font-size:clamp(2.6rem,6vw,4.25rem);line-height:1;font-weight:200;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.clock .s{color:var(--tx2);font-weight:200}
+
+.grid{display:grid;grid-template-columns:5fr 7fr;gap:1.25rem}
+.card{position:relative;background:var(--glass);-webkit-backdrop-filter:blur(40px) saturate(180%);backdrop-filter:blur(40px) saturate(180%);
+  border-radius:26px;padding:1.6rem;box-shadow:var(--sh),inset 0 1px 0 var(--edge)}
+.wide{grid-column:1/-1}
+.lbl{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);margin-bottom:1rem}
+
+/* Meteo */
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}
+.city{font-size:1.25rem;font-weight:600;letter-spacing:-.01em}
+.upd{font-size:.8rem;color:var(--tx2);letter-spacing:.01em}
+.row{display:flex;justify-content:space-between;align-items:center;margin:.25rem 0 .5rem}
+.t{font-size:clamp(5.5rem,12vw,8rem);font-weight:100;letter-spacing:-.06em;line-height:1;margin-left:-.05em}
+.ico{width:5.5rem;height:5.5rem;flex:none}
+.desc{font-size:1.05rem;font-weight:500;letter-spacing:-.005em}
+.rr{display:flex;align-items:center;gap:.7rem;margin:1rem 0 .9rem;font-size:.85rem;font-weight:500;color:var(--tx2);font-variant-numeric:tabular-nums}
+.rng{position:relative;flex:1;height:5px;border-radius:3px;background:linear-gradient(90deg,#64d2ff,#34c759,#ffd60a,#ff9f0a)}
+.rng i{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.25),0 1px 3px rgba(0,0,0,.3)}
+.sum{font-size:.95rem;color:var(--tx2);line-height:1.45}
+
+/* Frase */
+.q{display:flex;flex-direction:column;justify-content:center;min-height:calc(100% - 2rem)}
+.q p{font-size:clamp(1.4rem,2.8vw,2.1rem);line-height:1.22;letter-spacing:-.022em;font-weight:600}
+.q small{display:block;margin-top:1rem;color:var(--tx2);font-size:.95rem;font-weight:500}
+
+/* Notizie */
+ol{list-style:none;padding:0;counter-reset:n}
+.news a{display:flex;gap:1rem;align-items:baseline;color:var(--tx);text-decoration:none;padding:.85rem .75rem;margin:0 -.75rem;border-radius:14px;
+  transition:background-color .15s,transform .1s ease-out}
+.news a::before{counter-increment:n;content:counter(n);flex:none;min-width:1.5rem;font-size:1.5rem;font-weight:200;color:var(--tx2);letter-spacing:-.02em}
+.news a:hover{background:var(--press)}
+.news a:active{background:var(--press);transform:scale(.985)}
+.news b{display:block;font-weight:600;font-size:1.05rem;line-height:1.32;letter-spacing:-.012em}
+.news span{display:block;margin-top:.2rem;font-size:.8rem;color:var(--tx2);letter-spacing:.01em}
+.news li+li{box-shadow:inset 0 1px 0 var(--line);margin:0 .5rem 0 2.5rem}
+.news li+li a{margin:0 -.75rem 0 -2.5rem;padding-left:3.25rem}
+.err{color:var(--tx2);font-size:.9rem}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+
+/* Moduli */
+:root{--pal:rgba(255,255,255,.84)}:root[data-theme=dark]{--pal:rgba(44,44,46,.86)}
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:1rem}
+.mod{display:flex;gap:.9rem;align-items:center;padding:1rem 1.1rem;border-radius:20px;text-decoration:none;color:var(--tx);
+  background:var(--glass);-webkit-backdrop-filter:blur(40px) saturate(180%);backdrop-filter:blur(40px) saturate(180%);
+  box-shadow:var(--sh),inset 0 1px 0 var(--edge);transition:transform .1s ease-out}
+.mod:active{transform:scale(.97)}
+.ic,.pi{display:grid;place-items:center;flex:none;color:#fff;width:2.75rem;height:2.75rem;border-radius:13px;font-size:1.5rem}
+.mod b,.pal b{display:block;font-weight:600;letter-spacing:-.01em}
+.mod small,.pal small{display:block;color:var(--tx2);font-size:.8rem;letter-spacing:.01em}
+
+/* Barra: pulsante di ricerca */
+.rt{display:flex;gap:.6rem;align-items:center}
+.srch{display:flex;gap:.55rem;align-items:center;border:0;background:var(--seg);color:var(--tx2);font:inherit;font-size:.8rem;font-weight:500;padding:.3rem .45rem .3rem .8rem;border-radius:9px;cursor:pointer}
+.srch kbd{font:inherit;font-size:.72rem;padding:.05rem .4rem;border-radius:5px;background:var(--pill);color:var(--tx)}
+.srch:active{opacity:.6}
+a.srch{text-decoration:none;padding:.3rem .8rem}
+@media(max-width:700px){.cl{display:none}}
+
+/* Palette dei comandi: scrim che attenua lo sfondo, pannello che si materializza dal pulsante */
+.scrim{position:fixed;inset:0;z-index:50;display:flex;justify-content:center;align-items:flex-start;padding:14vh 1rem 1rem;background:rgba(0,0,0,.3);opacity:0;visibility:hidden;transition:opacity .25s,visibility 0s .25s}
+.scrim.open{opacity:1;visibility:visible;transition:opacity .25s}
+.pal{width:min(560px,100%);background:var(--pal);-webkit-backdrop-filter:blur(50px) saturate(180%);backdrop-filter:blur(50px) saturate(180%);
+  border-radius:22px;box-shadow:0 24px 70px rgba(0,0,0,.35),inset 0 1px 0 var(--edge);overflow:hidden;
+  transform:translateY(-8px) scale(.96);transform-origin:top center;transition:transform .45s cubic-bezier(.16,1,.3,1)}
+.open .pal{transform:none}
+.pal input{width:100%;border:0;background:none;color:var(--tx);font:inherit;font-size:1.15rem;letter-spacing:-.01em;padding:1.1rem 1.25rem;outline:0}
+.pal ul{list-style:none;padding:.4rem;max-height:50vh;overflow:auto;border-top:1px solid var(--line)}
+.pal li{display:flex;gap:.8rem;align-items:center;padding:.5rem .7rem;border-radius:12px;cursor:pointer}
+.pal li.on{background:var(--ac);color:#fff}
+.pal li.on small{color:rgba(255,255,255,.82)}
+.pal li:active{transform:scale(.99)}
+.pi{width:2.1rem;height:2.1rem;border-radius:9px;font-size:1.1rem}
+@media(max-width:520px){.srch span{display:none}}
+@media(prefers-reduced-motion:reduce){.pal,.scrim{transition:opacity .2s}.pal{transform:none}}
+@media(prefers-reduced-transparency:reduce){.mod,.pal{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--bg)}}
+
+/* Materializzazione: scala + opacità, a molla smorzata */
+.m{opacity:0;transform:translateY(10px) scale(.975);animation:mat .7s cubic-bezier(.16,1,.3,1) forwards;animation-delay:calc(var(--i)*70ms)}
+@keyframes mat{to{opacity:1;transform:none}}
+
+@media(max-width:760px){.grid{grid-template-columns:1fr}.hero{align-items:flex-start}}
+@media(prefers-reduced-motion:reduce){.m{animation:fade .3s forwards;transform:none}@keyframes fade{to{opacity:1}}.seg i,.news a{transition:none}}
+@media(prefers-reduced-transparency:reduce){.card,.bar{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--bg)}.bar::after{display:none}.card{box-shadow:var(--sh),inset 0 0 0 1px var(--line)}}
+@media(prefers-contrast:more){:root{--tx2:#3a3a3c}:root[data-theme=dark]{--tx2:#d1d1d6}.card{box-shadow:var(--sh),inset 0 0 0 1px var(--tx2)}}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="brand">Life Commander</div>
+  <div class="rt">
+    <a class="srch cl" href="index.html" title="Torna al launcher classico"><span>Launcher classico</span></a>
+    <button class="srch" id="openpal" aria-label="Cerca moduli"><span>Cerca</span><kbd id="kbd">⌘K</kbd></button>
+    <div class="seg" id="seg" data-t="light" role="group" aria-label="Tema">
+      <i></i><button data-v="light" aria-pressed="true">Chiaro</button><button data-v="dark" aria-pressed="false">Scuro</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="hero m" style="--i:0">
+    <div>
+      <h1 id="greet">Ciao, Emanuele</h1>
+      <div class="date" id="date"></div>
+    </div>
+    <div class="clock" id="clock">--:--</div>
+  </div>
+
+  <div class="grid">
+    <section class="card m" style="--i:1" id="meteo"><div class="err">Carico il meteo…</div></section>
+    <section class="card m" style="--i:2"><div class="lbl">Frase del giorno</div><div class="q" id="quote"></div></section>
+    <section class="card wide m" style="--i:3"><div class="lbl">Le 5 notizie del momento</div><ol class="news" id="news"><li><span class="err">Carico le notizie…</span></li></ol></section>
+  </div>
+
+  <div class="lbl m" style="--i:4;margin:2.25rem 0 1rem">I tuoi moduli</div>
+  <div class="mods m" id="mods" style="--i:5"></div>
+</main>
+
+<div class="scrim" id="pal" role="dialog" aria-label="Cerca moduli">
+  <div class="pal">
+    <input id="pin" type="text" placeholder="Cerca un modulo o un comando…" autocomplete="off" spellcheck="false">
+    <ul id="pl"></ul>
+  </div>
+</div>
+
+<script>
+const NOME = "Emanuele";
+const LAT = 44.7708, LON = 10.7822, CITTA = "Correggio, Emilia-Romagna, Italia";
+
+/* ---------- Tema (scelta manuale) ---------- */
+const root = document.documentElement, seg = document.getElementById('seg');
+function setTema(t){
+  root.dataset.theme = t; seg.dataset.t = t;
+  seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===t));
+  try{localStorage.setItem('tema',t)}catch(e){}
+}
+let t0='light'; try{t0=localStorage.getItem('tema')||'light'}catch(e){}
+setTema(t0);
+seg.querySelectorAll('button').forEach(b => b.addEventListener('pointerdown', () => setTema(b.dataset.v)));
+
+/* ---------- Saluto, data, ora ---------- */
+function saluto(h){
+  if(h>=5 && h<12) return 'Buongiorno';
+  if(h>=12 && h<18) return 'Buon pomeriggio';
+  if(h>=18 && h<22) return 'Buonasera';
+  return 'Buonanotte';
+}
+function tick(){
+  const n = new Date(), p = x => String(x).padStart(2,'0');
+  document.getElementById('greet').textContent = saluto(n.getHours()) + ', ' + NOME;
+  document.getElementById('date').textContent = n.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('clock').innerHTML = p(n.getHours())+':'+p(n.getMinutes())+'<span class="s">:'+p(n.getSeconds())+'</span>';
+}
+tick(); setInterval(tick,1000);
+
+/* ---------- Frase del giorno (modifica/aggiungi liberamente) ---------- */
+const FRASI = [
+ ["Non è che abbiamo poco tempo, ma ne perdiamo molto.","Seneca"],
+ ["Hai potere sulla tua mente, non sugli eventi esterni. Capiscilo e troverai la forza.","Marco Aurelio"],
+ ["Non sono le cose a turbare gli uomini, ma i giudizi che ne danno.","Epitteto"],
+ ["Un viaggio di mille miglia comincia con un passo.","Lao Tzu"],
+ ["Nessun uomo entra due volte nello stesso fiume.","Eraclito"],
+ ["Si soffre più spesso nell'immaginazione che nella realtà.","Seneca"],
+ ["Ciò che ostacola il cammino diventa il cammino.","Marco Aurelio"],
+ ["Conosci te stesso.","Iscrizione del tempio di Delfi"],
+ ["Chi ha un perché abbastanza forte può sopportare quasi ogni come.","Nietzsche"],
+ ["La vita, se sai usarla, è lunga.","Seneca"],
+ ["Chi conosce gli altri è sapiente; chi conosce se stesso è illuminato.","Lao Tzu"],
+ ["La felicità della tua vita dipende dalla qualità dei tuoi pensieri.","Marco Aurelio"],
+ ["L'acqua scava la roccia non con la forza, ma cadendo spesso.","Ovidio"],
+ ["Comincia a fare ciò che è necessario, poi ciò che è possibile, e all'improvviso farai l'impossibile.","attribuita a Francesco d'Assisi"]
+];
+(function(){
+  const n = new Date(), g = Math.floor((n - new Date(n.getFullYear(),0,0))/864e5), f = FRASI[g % FRASI.length];
+  document.getElementById('quote').innerHTML = '<p>“'+f[0]+'”</p><small>'+f[1]+'</small>';
+})();
+
+/* ---------- Meteo (Open-Meteo, Correggio) ---------- */
+const WMO = {0:'Sereno',1:'Prevalentemente sereno',2:'Parzialmente nuvoloso',3:'Nuvoloso',45:'Nebbia',48:'Nebbia con brina',51:'Pioggerella',53:'Pioggerella',55:'Pioggerella intensa',56:'Pioggia gelata',57:'Pioggia gelata',61:'Pioggia debole',63:'Pioggia',65:'Pioggia forte',66:'Pioggia gelata',67:'Pioggia gelata',71:'Neve debole',73:'Neve',75:'Neve forte',77:'Nevischio',80:'Rovesci',81:'Rovesci',82:'Rovesci violenti',85:'Rovesci di neve',86:'Rovesci di neve',95:'Temporale',96:'Temporale con grandine',99:'Temporale con grandine'};
+const CLOUD = '<path d="M22 50a11 11 0 0 1 1-22 15 15 0 0 1 29 4 9 9 0 0 1-1 18z" fill="var(--cloud)"/>';
+const SUN = '<circle cx="32" cy="32" r="12" fill="#ffb800"/><g stroke="#ffb800" stroke-width="3" stroke-linecap="round"><path d="M32 8v6M32 50v6M8 32h6M50 32h6M15 15l4 4M45 45l4 4M49 15l-4 4M19 45l-4 4"/></g>';
+function icona(c){
+  let s;
+  if(c===0||c===1) s = SUN;
+  else if(c===2) s = '<g transform="translate(-8 -8) scale(.75)">'+SUN+'</g><g transform="translate(6 4)">'+CLOUD+'</g>';
+  else if(c===45||c===48) s = CLOUD+'<g stroke="#9aa0ad" stroke-width="3" stroke-linecap="round"><path d="M16 55h30M22 60h30"/></g>';
+  else if(c>=71&&c<=77||c===85||c===86) s = CLOUD+'<g fill="#fff"><circle cx="24" cy="57" r="2.5"/><circle cx="35" cy="59" r="2.5"/><circle cx="46" cy="57" r="2.5"/></g>';
+  else if(c>=95) s = CLOUD+'<path d="M34 44l-7 11h6l-3 8 10-12h-6z" fill="#ffd60a"/>';
+  else if(c>=51) s = CLOUD+'<g stroke="#4aa8ff" stroke-width="3" stroke-linecap="round"><path d="M24 55l-2 6M35 55l-2 6M46 55l-2 6"/></g>';
+  else s = CLOUD;
+  return '<svg class="ico" viewBox="0 0 64 64" aria-hidden="true">'+s+'</svg>';
+}
+async function meteo(){
+  const el = document.getElementById('meteo');
+  try{
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,weather_code&hourly=temperature_2m&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome&forecast_days=1`;
+    const d = await (await fetch(u)).json(), c = d.current, r = Math.round;
+    const H = d.hourly.temperature_2m.slice(0,24);
+    const hMax = H.indexOf(Math.max(...H)), hMin = H.indexOf(Math.min(...H));
+    const mx = d.daily.temperature_2m_max[0], mn = d.daily.temperature_2m_min[0];
+    const pos = Math.max(0, Math.min(100, (c.temperature_2m - mn) / ((mx - mn) || 1) * 100));
+    const hh = new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+    el.innerHTML = `<div class="top"><div><div class="city">${CITTA}</div><div class="upd">Aggiornato alle ${hh}</div></div></div>
+      <div class="row"><div class="t">${r(c.temperature_2m)}°</div>${icona(c.weather_code)}</div>
+      <div class="desc">${WMO[c.weather_code]||'—'} · percepita ${r(c.apparent_temperature)}°</div>
+      <div class="rr"><span>Min ${r(mn)}°</span><div class="rng"><i style="left:${pos}%"></i></div><span>Max ${r(mx)}°</span></div>
+      <div class="sum">Massima verso le ${hMax}, minima ${hMin<=8?"all'alba":'verso le '+hMin}.</div>`;
+  }catch(e){ el.innerHTML = '<div class="err">Meteo non disponibile al momento.</div>'; }
+}
+meteo(); setInterval(meteo, 20*60*1000);
+
+/* ---------- 5 notizie "hot": le storie coperte da più testate ---------- */
+const FEEDS = [
+ ["ANSA","https://www.ansa.it/sito/ansait_rss.xml"],
+ ["la Repubblica","https://www.repubblica.it/rss/homepage/rss2.0.xml"],
+ ["Corriere","https://xml2.corriereobjects.it/rss/homepage.xml"],
+ ["Sky TG24","https://tg24.sky.it/rss/tg24.xml"]
+];
+const STOP = new Set(['della','delle','degli','dello','nella','nelle','sono','come','dopo','prima','anni','anno','ancora','questo','questa','sulla','dalla','alla','alle','agli','tutti','cosa','dove','quando','perche','essere','fatto','nuovo','nuova','contro','oggi','video','foto','live','ultime','notizie']);
+const tok = s => new Set(s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>4 && !STOP.has(w)));
+const simili = (a,b) => { let n=0; for(const w of a) if(b.has(w)) n++; return n>=2; };
+const esc = s => s.replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+async function notizie(){
+  const ol = document.getElementById('news');
+  const res = await Promise.allSettled(FEEDS.map(async ([nome,url])=>{
+    const j = await (await fetch('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(url))).json();
+    if(j.status!=='ok') throw 0;
+    return j.items.slice(0,25).map(i=>({fonte:nome,titolo:i.title,link:i.link,data:new Date((i.pubDate||'').replace(' ','T')+'Z').getTime()||0,tok:tok(i.title)}));
+  }));
+  const items = res.filter(r=>r.status==='fulfilled').flatMap(r=>r.value);
+  if(!items.length){ ol.innerHTML='<li><span class="err">Notizie non disponibili al momento.</span></li>'; return; }
+  items.forEach(a=>{
+    a.fonti = new Set([a.fonte]);
+    items.forEach(b=>{ if(b!==a && b.fonte!==a.fonte && simili(a.tok,b.tok)) a.fonti.add(b.fonte); });
+  });
+  items.sort((a,b)=> b.fonti.size-a.fonti.size || b.data-a.data);
+  const top=[];
+  for(const a of items){ if(top.length>=5) break; if(!top.some(t=>simili(t.tok,a.tok))) top.push(a); }
+  ol.innerHTML = top.map(a=>`<li><a href="${esc(a.link)}" target="_blank" rel="noopener"><div><b>${esc(a.titolo)}</b>
+    <span>${a.fonti.size>1 ? 'Ne parlano: '+[...a.fonti].join(' · ') : a.fonte}</span></div></a></li>`).join('');
+}
+notizie(); setInterval(notizie, 15*60*1000);
+
+/* ---------- Moduli: modifica qui nomi e file (benvenuto.html sta nella radice, accanto a index.html) ---------- */
+const MODULI = [
+ {n:'Meteo',d:'Condizioni, aria, vento, luna',h:'moduli/meteo-posizione.html',e:'🌤️',c:'linear-gradient(135deg,#4facfe,#0a84ff)',k:'meteo tempo aria uv vento luna posizione'},
+ {n:'Dashboard',d:'Meteo, TV e news affiancati',h:'moduli/dashboard.html',e:'🧭',c:'linear-gradient(135deg,#8e8e93,#636366)',k:'dashboard colonne'},
+ {n:'TV + Radio',d:'Video e radio insieme',h:'moduli/tv-radio.html',e:'📺',c:'linear-gradient(135deg,#ff6b6b,#ff3b30)',k:'tv radio rai sky video'},
+ {n:'TV',d:'Canali italiani da elenco',h:'moduli/tv.html',e:'🎞️',c:'linear-gradient(135deg,#ff9f0a,#ff7a00)',k:'tv canali iptv televisione'},
+ {n:'Radio',d:'Stazioni e palinsesto',h:'moduli/radio-commander.html',e:'📻',c:'linear-gradient(135deg,#ff6482,#ff2d55)',k:'radio palinsesto stazioni'},
+ {n:'World News',d:'Rassegna stampa multi-fonte',h:'moduli/world-news.html',e:'📰',c:'linear-gradient(135deg,#5ac8fa,#007aff)',k:'news notizie rss rassegna'},
+ {n:'Multi Vista',d:'Quattro riquadri liberi',h:'moduli/multi-vista.html',e:'🔲',c:'linear-gradient(135deg,#bf5af2,#af52de)',k:'multi vista riquadri finestre'},
+ {n:'Risultati sportivi',d:'Serie A, Champions, NFL live',h:'moduli/risultati-sportivi.html',e:'⚽',c:'linear-gradient(135deg,#30d158,#248a3d)',k:'risultati sport calcio partite nfl champions'},
+ {n:'WikiME',d:'Cerca un argomento nelle fonti',h:'moduli/wikime.html',e:'🔎',c:'linear-gradient(135deg,#66d4cf,#30b0c7)',k:'wikime ricerca argomento fonti'},
+ {n:'WikiME Fonti',d:'Ricerca multi-fonte su un argomento',h:'moduli/wikime-fonti.html',e:'📚',c:'linear-gradient(135deg,#5ac8fa,#0a84ff)',k:'wikime fonti ricerca argomento'}
+];
+document.getElementById('mods').innerHTML = MODULI.map(m =>
+  `<a class="mod" href="${m.h}"><span class="ic" style="background:${m.c}">${m.e}</span><span><b>${m.n}</b><small>${m.d}</small></span></a>`).join('');
+
+/* ---------- Palette dei comandi: Cmd/Ctrl+K oppure "/" ---------- */
+const pal = document.getElementById('pal'), pin = document.getElementById('pin'), pl = document.getElementById('pl');
+document.getElementById('kbd').textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl K';
+const AZIONI = [{n:'Cambia tema',d:'Alterna chiaro e scuro',e:'◐',c:'#8e8e93',k:'tema scuro chiaro notte',fn:()=>setTema(root.dataset.theme==='dark'?'light':'dark')}];
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+let vis = [], sel = 0;
+function disegna(){
+  pl.innerHTML = vis.length ? vis.map((m,i)=>`<li data-i="${i}" class="${i===sel?'on':''}"><span class="pi" style="background:${m.c}">${m.e}</span><span><b>${m.n}</b><small>${m.d}</small></span></li>`).join('')
+    : '<li style="cursor:default"><span class="err">Nessun risultato</span></li>';
+  const on = pl.querySelector('.on'); if(on) on.scrollIntoView({block:'nearest'});
+}
+function filtra(){
+  const w = norm(pin.value.trim()).split(/\s+/).filter(Boolean);
+  vis = [...MODULI,...AZIONI].filter(m => { const t = norm(m.n+' '+m.d+' '+m.k); return w.every(x => t.includes(x)); });
+  sel = 0; disegna();
+}
+function apri(){ pal.classList.add('open'); pin.value=''; filtra(); pin.focus(); }
+function chiudi(){ pal.classList.remove('open'); pin.blur(); }
+function esegui(m){ if(m.fn){ m.fn(); chiudi(); } else location.href = m.h; }
+
+document.addEventListener('keydown', e => {
+  const aperta = pal.classList.contains('open');
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); aperta ? chiudi() : apri(); return; }
+  if(!aperta){ if(e.key==='/' && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)){ e.preventDefault(); apri(); } return; }
+  if(e.key==='Escape') chiudi();
+  else if(e.key==='ArrowDown' && vis.length){ e.preventDefault(); sel=(sel+1)%vis.length; disegna(); }
+  else if(e.key==='ArrowUp' && vis.length){ e.preventDefault(); sel=(sel-1+vis.length)%vis.length; disegna(); }
+  else if(e.key==='Enter' && vis[sel]) esegui(vis[sel]);
+});
+pin.addEventListener('input', filtra);
+pal.addEventListener('pointerdown', e => { if(e.target===pal) chiudi(); });
+pl.addEventListener('click', e => { const li = e.target.closest('li[data-i]'); if(li) esegui(vis[+li.dataset.i]); });
+document.getElementById('openpal').addEventListener('pointerdown', e => { e.preventDefault(); apri(); });
+</script>
+</body>
+</html>
