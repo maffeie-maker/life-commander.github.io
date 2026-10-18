@@ -43,10 +43,11 @@ h1{font-size:clamp(2.4rem,6.5vw,4.25rem);line-height:1.04;letter-spacing:-.035em
 .clock{font-size:clamp(2.6rem,6vw,4.25rem);line-height:1;font-weight:200;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .clock .s{color:var(--tx2);font-weight:200}
 
-.grid{display:grid;grid-template-columns:5fr 7fr;gap:1.25rem}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:1.25rem}
 .card{position:relative;background:var(--glass);-webkit-backdrop-filter:blur(40px) saturate(180%);backdrop-filter:blur(40px) saturate(180%);
   border-radius:26px;padding:1.6rem;box-shadow:var(--sh),inset 0 1px 0 var(--edge)}
 .wide{grid-column:1/-1}
+.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}
 .lbl{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);margin-bottom:1rem}
 
 /* Meteo */
@@ -118,6 +119,7 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
 @media(prefers-reduced-motion:reduce){.pal,.scrim{transition:opacity .2s}.pal{transform:none}}
 @media(prefers-reduced-transparency:reduce){.mod,.pal{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--bg)}}
 
+[hidden]{display:none!important}
 /* Partite live */
 .lh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1rem}
 .lh .lbl{margin:0}
@@ -134,12 +136,33 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
 .tm span{flex:1;min-width:0;font-weight:500;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tm strong{font-weight:600;font-variant-numeric:tabular-nums}
 
-/* Materializzazione: scala + opacità, a molla smorzata */
-.m{opacity:0;transform:translateY(10px) scale(.975);animation:mat .7s cubic-bezier(.16,1,.3,1) forwards;animation-delay:calc(var(--i)*70ms)}
-@keyframes mat{to{opacity:1;transform:none}}
+/* Card cliccabili e adattamento all'orientamento */
+.go{cursor:pointer;transition:transform .1s ease-out}
+.go:active{transform:scale(.985)}
+@media (orientation:portrait),(max-width:760px){
+  .grid>*{grid-column:1/-1}
+  .hero{flex-direction:column;align-items:flex-start;gap:.75rem}
+}
+@media (max-width:700px){
+  .mods{grid-template-columns:repeat(2,1fr)}
+  .mod{flex-direction:column;align-items:flex-start;gap:.6rem}
+}
+@media (orientation:landscape) and (max-height:520px){
+  main{padding-top:.75rem;padding-bottom:2rem}
+  .hero{margin-bottom:1rem}
+  h1{font-size:2rem}.clock{font-size:2.2rem}.date{font-size:1rem}
+  .t{font-size:4rem}.ico{width:3.5rem;height:3.5rem}
+  .card{padding:1.1rem;border-radius:20px}.grid{gap:.75rem}
+  .bar{padding:.35rem clamp(1rem,3vw,2.5rem)}
+}
+@media (min-width:1500px) and (orientation:landscape){main{max-width:1320px}}
 
-@media(max-width:760px){.grid{grid-template-columns:1fr}.hero{align-items:flex-start}}
-@media(prefers-reduced-motion:reduce){.m{animation:fade .3s forwards;transform:none}@keyframes fade{to{opacity:1}}.seg i,.news a{transition:none}}
+/* Materializzazione: scala + opacità, a molla smorzata */
+.m{animation:mat .7s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--i)*70ms)}
+@keyframes mat{from{opacity:0;transform:translateY(10px) scale(.975)}}
+
+@media(max-width:760px){.hero{align-items:flex-start}}
+@media(prefers-reduced-motion:reduce){.m{animation:fade .3s backwards}@keyframes fade{from{opacity:0}}.seg i,.news a,.go,.mod,.mt{transition:none}}
 @media(prefers-reduced-transparency:reduce){.card,.bar{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--bg)}.bar::after{display:none}.card{box-shadow:var(--sh),inset 0 0 0 1px var(--line)}}
 @media(prefers-contrast:more){:root{--tx2:#3a3a3c}:root[data-theme=dark]{--tx2:#d1d1d6}.card{box-shadow:var(--sh),inset 0 0 0 1px var(--tx2)}}
 </style>
@@ -166,14 +189,15 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
   </div>
 
   <div class="grid">
-    <section class="card m" style="--i:1" id="meteo"><div class="err">Carico il meteo…</div></section>
-    <section class="card m" style="--i:2"><div class="lbl">Frase del giorno</div><div class="q" id="quote"></div></section>
-    <section class="card wide m" style="--i:3"><div class="lh"><div class="lbl">Partite live</div><a href="moduli/risultati-sportivi.html">Tutti i risultati ›</a></div><div class="lnote" id="livenote"></div><div class="live" id="live"><span class="err">Carico le partite…</span></div></section>
-    <section class="card wide m" style="--i:4"><div class="lbl">Le 5 notizie del momento</div><ol class="news" id="news"><li><span class="err">Carico le notizie…</span></li></ol></section>
+    <section class="card m c5 go" style="--i:1" id="meteo" data-href="moduli/meteo-posizione.html"><div class="err">Carico il meteo…</div></section>
+    <section class="card m c7" style="--i:2"><div class="lbl">Frase del giorno</div><div class="q" id="quote"></div></section>
+    <section class="card wide m go" id="livecard" hidden style="--i:3" data-href="moduli/risultati-sportivi.html"><div class="lh"><div class="lbl">Partite live</div><a href="moduli/risultati-sportivi.html">Tutti i risultati ›</a></div><div class="live" id="live"></div></section>
+    <section class="card m c6 go" style="--i:4" data-href="moduli/world-news.html"><div class="lh"><div class="lbl">Le 5 notizie dall'Italia</div><a href="moduli/world-news.html">World News ›</a></div><ol class="news" id="news"><li><span class="err">Carico le notizie…</span></li></ol></section>
+    <section class="card m c6 go" style="--i:5" data-href="moduli/world-news.html"><div class="lh"><div class="lbl">Notizie internazionali</div><a href="moduli/world-news.html">World News ›</a></div><ol class="news" id="newsint"><li><span class="err">Carico le notizie…</span></li></ol></section>
   </div>
 
-  <div class="lbl m" style="--i:4;margin:2.25rem 0 1rem">I tuoi moduli</div>
-  <div class="mods m" id="mods" style="--i:5"></div>
+  <div class="lbl m" style="--i:6;margin:2.25rem 0 1rem">I tuoi moduli</div>
+  <div class="mods m" id="mods" style="--i:7"></div>
 </main>
 
 <div class="scrim" id="pal" role="dialog" aria-label="Cerca moduli">
@@ -262,27 +286,34 @@ async function meteo(){
     el.innerHTML = `<div class="top"><div><div class="city">${CITTA}</div><div class="upd">Aggiornato alle ${hh}</div></div></div>
       <div class="row"><div class="t">${r(c.temperature_2m)}°</div>${icona(c.weather_code)}</div>
       <div class="desc">${WMO[c.weather_code]||'—'} · percepita ${r(c.apparent_temperature)}°</div>
-      <div class="rr"><span>Min ${r(mn)}°</span><div class="rng"></div><span>Max ${r(mx)}°</span></div>
+      <div class="rr"><span>Max ${r(mx)}° · Min ${r(mn)}°</span></div>
       <div class="sum">Massima verso le ${hMax}, minima ${hMin<=8?"all'alba":'verso le '+hMin}.</div>`;
   }catch(e){ el.innerHTML = '<div class="err">Meteo non disponibile al momento.</div>'; }
 }
 meteo(); setInterval(meteo, 20*60*1000);
 
-/* ---------- 5 notizie "hot": le storie coperte da più testate ---------- */
-const FEEDS = [
+/* ---------- Notizie "hot": le storie coperte da più testate ---------- */
+const FEED_IT = [
  ["ANSA","https://www.ansa.it/sito/ansait_rss.xml"],
  ["la Repubblica","https://www.repubblica.it/rss/homepage/rss2.0.xml"],
  ["Corriere","https://xml2.corriereobjects.it/rss/homepage.xml"],
  ["Sky TG24","https://tg24.sky.it/rss/tg24.xml"]
 ];
-const STOP = new Set(['della','delle','degli','dello','nella','nelle','sono','come','dopo','prima','anni','anno','ancora','questo','questa','sulla','dalla','alla','alle','agli','tutti','cosa','dove','quando','perche','essere','fatto','nuovo','nuova','contro','oggi','video','foto','live','ultime','notizie']);
+const FEED_EN = [
+ ["BBC","https://feeds.bbci.co.uk/news/world/rss.xml"],
+ ["The Guardian","https://www.theguardian.com/world/rss"],
+ ["Al Jazeera","https://www.aljazeera.com/xml/rss/all.xml"],
+ ["New York Times","https://rss.nytimes.com/services/xml/rss/nyt/World.xml"]
+];
+const STOP = new Set(['della','delle','degli','dello','nella','nelle','sono','come','dopo','prima','anni','anno','ancora','questo','questa','sulla','dalla','alla','alle','agli','tutti','cosa','dove','quando','perche','essere','fatto','nuovo','nuova','contro','oggi','video','foto','live','ultime','notizie',
+ 'about','after','their','which','would','could','these','those','while','where','being','during','against','first','again','still','other','report','reports','news','says','amid','under','years','three']);
 const tok = s => new Set(s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>4 && !STOP.has(w)));
 const simili = (a,b) => { let n=0; for(const w of a) if(b.has(w)) n++; return n>=2; };
 const esc = s => s.replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
-async function notizie(){
-  const ol = document.getElementById('news');
-  const res = await Promise.allSettled(FEEDS.map(async ([nome,url])=>{
+async function rassegna(feeds, id){
+  const ol = document.getElementById(id);
+  const res = await Promise.allSettled(feeds.map(async ([nome,url])=>{
     const j = await (await fetch('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(url))).json();
     if(j.status!=='ok') throw 0;
     return j.items.slice(0,25).map(i=>({fonte:nome,titolo:i.title,link:i.link,data:new Date((i.pubDate||'').replace(' ','T')+'Z').getTime()||0,tok:tok(i.title)}));
@@ -299,31 +330,33 @@ async function notizie(){
   ol.innerHTML = top.map(a=>`<li><a href="${esc(a.link)}" target="_blank" rel="noopener"><div><b>${esc(a.titolo)}</b>
     <span>${a.fonti.size>1 ? 'Ne parlano: '+[...a.fonti].join(' · ') : a.fonte}</span></div></a></li>`).join('');
 }
-notizie(); setInterval(notizie, 15*60*1000);
+const notizie = () => rassegna(FEED_IT,'news'), internazionali = () => rassegna(FEED_EN,'newsint');
+notizie(); setTimeout(internazionali, 1500);
+setInterval(notizie, 15*60*1000); setInterval(internazionali, 15*60*1000);
+
+/* ---------- Clic su una card: apre il modulo corrispondente (i link interni restano link) ---------- */
+document.querySelectorAll('.go').forEach(c => {
+  c.setAttribute('tabindex','0'); c.setAttribute('role','link');
+  c.addEventListener('click', e => { if(!e.target.closest('a')) location.href = c.dataset.href; });
+  c.addEventListener('keydown', e => { if(e.key==='Enter' && e.target===c) location.href = c.dataset.href; });
+});
 
 /* ---------- Partite live (Serie A, Champions League, NFL) ---------- */
 const LEGHE = [['Serie A','soccer/ita.1'],['Champions League','soccer/uefa.champions'],['NFL','football/nfl']];
 async function live(){
-  const el = document.getElementById('live'), nota = document.getElementById('livenote');
+  const card = document.getElementById('livecard'), el = document.getElementById('live');
   const res = await Promise.allSettled(LEGHE.map(async ([nome,path]) => {
     const j = await (await fetch('https://site.api.espn.com/apis/site/v2/sports/'+path+'/scoreboard')).json();
     return (j.events||[]).map(ev => {
       const c = ev.competitions[0].competitors, h = c.find(x=>x.homeAway==='home'), a = c.find(x=>x.homeAway==='away');
-      return {lega:nome, stato:ev.status.type.state, det:ev.status.type.shortDetail, data:new Date(ev.date), h, a};
+      return {lega:nome, stato:ev.status.type.state, det:ev.status.type.shortDetail, h, a};
     });
   }));
-  if(!res.some(r => r.status==='fulfilled')){ nota.textContent=''; el.innerHTML='<span class="err">Risultati non disponibili al momento.</span>'; return; }
-  const tutte = res.filter(r=>r.status==='fulfilled').flatMap(r=>r.value);
-  let lista = tutte.filter(e => e.stato==='in');
-  if(lista.length){ nota.textContent=''; }
-  else {
-    lista = tutte.filter(e => e.stato==='pre' && e.data > Date.now()-6e4).sort((x,y)=>x.data-y.data).slice(0,4);
-    nota.textContent = lista.length ? 'Nessuna partita in corso. Le prossime:' : 'Nessuna partita in corso e nessuna in programma a breve.';
-  }
-  const quando = d => { const t = d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
-    return d.toDateString()===new Date().toDateString() ? t : d.toLocaleDateString('it-IT',{weekday:'short'})+' '+t; };
-  const riga = (x,pre) => `<div class="tm"><img src="${esc(x.team.logo||'')}" alt="" onerror="this.style.visibility='hidden'"><span>${esc(x.team.shortDisplayName||x.team.displayName)}</span><strong>${pre?'–':esc(String(x.score??'0'))}</strong></div>`;
-  el.innerHTML = lista.map(e => `<a class="mt" href="moduli/risultati-sportivi.html"><div class="ml"><span>${e.lega}</span>${e.stato==='in'?'<span class="lv">● '+esc(e.det)+'</span>':'<span>'+quando(e.data)+'</span>'}</div>${riga(e.h,e.stato==='pre')}${riga(e.a,e.stato==='pre')}</a>`).join('');
+  const lista = res.filter(r=>r.status==='fulfilled').flatMap(r=>r.value).filter(e => e.stato==='in');
+  if(!lista.length){ card.hidden = true; el.innerHTML = ''; return; }   /* nessuna partita live: la card non si vede */
+  const riga = x => `<div class="tm"><img src="${esc(x.team.logo||'')}" alt="" onerror="this.style.visibility='hidden'"><span>${esc(x.team.shortDisplayName||x.team.displayName)}</span><strong>${esc(String(x.score??'0'))}</strong></div>`;
+  el.innerHTML = lista.map(e => `<a class="mt" href="moduli/risultati-sportivi.html"><div class="ml"><span>${e.lega}</span><span class="lv">● ${esc(e.det)}</span></div>${riga(e.h)}${riga(e.a)}</a>`).join('');
+  card.hidden = false;
 }
 live(); setInterval(live, 2*60*1000);
 
