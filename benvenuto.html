@@ -37,10 +37,11 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 .seg button:active{opacity:.6}
 
 main{max-width:1080px;margin:0 auto;padding:1.5rem clamp(1rem,3vw,2.5rem) 4rem}
-.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:1.5rem;flex-wrap:wrap;margin-bottom:2rem}
-h1{font-size:clamp(2.4rem,6.5vw,4.25rem);line-height:1.04;letter-spacing:-.035em;font-weight:700}
-.date{margin-top:.5rem;font-size:1.15rem;letter-spacing:-.005em;color:var(--tx2);font-weight:500;text-transform:capitalize}
-.clock{font-size:clamp(2.6rem,6vw,4.25rem);line-height:1;font-weight:200;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.hero{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.25rem}
+.when{text-align:right;flex:none}
+h1{flex:1;min-width:0;font-size:clamp(1.9rem,4.6vw,3.1rem);line-height:1.05;letter-spacing:-.03em;font-weight:700}
+.date{margin-top:.3rem;font-size:.95rem;letter-spacing:-.005em;color:var(--tx2);font-weight:500;text-transform:capitalize;white-space:nowrap}
+.clock{font-size:clamp(2rem,4vw,3rem);line-height:1;font-weight:200;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .clock .s{color:var(--tx2);font-weight:200}
 
 .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:1.25rem}
@@ -144,7 +145,6 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
 .go:active{transform:scale(.985)}
 @media (orientation:portrait),(max-width:760px){
   .grid>*{grid-column:1/-1}
-  .hero{flex-direction:column;align-items:flex-start;gap:.75rem}
 }
 @media (max-width:700px){
   .mods{grid-template-columns:repeat(2,1fr)}
@@ -185,11 +185,8 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
 
 <main>
   <div class="hero m" style="--i:0">
-    <div>
-      <h1 id="greet">Ciao, Emanuele</h1>
-      <div class="date" id="date"></div>
-    </div>
-    <div class="clock" id="clock">--:--</div>
+    <h1 id="greet">Ciao, Emanuele</h1>
+    <div class="when"><div class="clock" id="clock">--:--</div><div class="date" id="date"></div></div>
   </div>
 
   <div class="grid">
