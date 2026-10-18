@@ -51,14 +51,17 @@ h1{font-size:clamp(2.4rem,6.5vw,4.25rem);line-height:1.04;letter-spacing:-.035em
 .lbl{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);margin-bottom:1rem}
 
 /* Meteo */
-.top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}
+.top{display:flex;align-items:baseline;gap:.2rem .75rem;flex-wrap:wrap}
 .city{font-size:1.25rem;font-weight:600;letter-spacing:-.01em}
 .upd{font-size:.8rem;color:var(--tx2);letter-spacing:.01em}
-.row{display:flex;justify-content:space-between;align-items:center;margin:.25rem 0 .5rem}
-.t{font-size:clamp(5.5rem,12vw,8rem);font-weight:100;letter-spacing:-.06em;line-height:1;margin-left:-.05em}
-.ico{width:5.5rem;height:5.5rem;flex:none}
+.row{display:flex;align-items:center;gap:.5rem}
+.wb{display:flex;align-items:center;gap:.4rem 2rem;flex-wrap:wrap;margin-top:.35rem}
+.wd{flex:1;min-width:13rem}
+#meteo{padding:1.15rem 1.4rem}
+.t{font-size:clamp(3.75rem,8vw,5rem);font-weight:100;letter-spacing:-.06em;line-height:1;margin-left:-.05em}
+.ico{width:3.5rem;height:3.5rem;flex:none}
 .desc{font-size:1.05rem;font-weight:500;letter-spacing:-.005em}
-.rr{display:flex;align-items:center;gap:.7rem;margin:1rem 0 .9rem;font-size:.85rem;font-weight:500;color:var(--tx2);font-variant-numeric:tabular-nums}
+.rr{margin:.2rem 0;font-size:.85rem;font-weight:500;color:var(--tx2);font-variant-numeric:tabular-nums}
 .rng{position:relative;flex:1;height:5px;border-radius:3px;background:linear-gradient(90deg,#64d2ff,#34c759,#ffd60a,#ff9f0a)}
 .rng i{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.25),0 1px 3px rgba(0,0,0,.3)}
 .sum{font-size:.95rem;color:var(--tx2);line-height:1.45}
@@ -165,6 +168,7 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
 @media(prefers-reduced-motion:reduce){.m{animation:fade .3s backwards}@keyframes fade{from{opacity:0}}.seg i,.news a,.go,.mod,.mt{transition:none}}
 @media(prefers-reduced-transparency:reduce){.card,.bar{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--bg)}.bar::after{display:none}.card{box-shadow:var(--sh),inset 0 0 0 1px var(--line)}}
 @media(prefers-contrast:more){:root{--tx2:#3a3a3c}:root[data-theme=dark]{--tx2:#d1d1d6}.card{box-shadow:var(--sh),inset 0 0 0 1px var(--tx2)}}
+@media (min-width:800px){.grid>.c5{grid-column:span 5}.grid>.c7{grid-column:span 7}.grid>.c6{grid-column:span 6}}
 </style>
 </head>
 <body>
@@ -283,11 +287,11 @@ async function meteo(){
     const hMax = H.indexOf(Math.max(...H)), hMin = H.indexOf(Math.min(...H));
     const mx = d.daily.temperature_2m_max[0], mn = d.daily.temperature_2m_min[0];
     const hh = new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
-    el.innerHTML = `<div class="top"><div><div class="city">${CITTA}</div><div class="upd">Aggiornato alle ${hh}</div></div></div>
-      <div class="row"><div class="t">${r(c.temperature_2m)}°</div>${icona(c.weather_code)}</div>
-      <div class="desc">${WMO[c.weather_code]||'—'} · percepita ${r(c.apparent_temperature)}°</div>
-      <div class="rr"><span>Max ${r(mx)}° · Min ${r(mn)}°</span></div>
-      <div class="sum">Massima verso le ${hMax}, minima ${hMin<=8?"all'alba":'verso le '+hMin}.</div>`;
+    el.innerHTML = `<div class="top"><span class="city">${CITTA}</span><span class="upd">Aggiornato alle ${hh}</span></div>
+      <div class="wb"><div class="row"><div class="t">${r(c.temperature_2m)}°</div>${icona(c.weather_code)}</div>
+      <div class="wd"><div class="desc">${WMO[c.weather_code]||'—'} · percepita ${r(c.apparent_temperature)}°</div>
+      <div class="rr">Max ${r(mx)}° · Min ${r(mn)}°</div>
+      <div class="sum">Massima verso le ${hMax}, minima ${hMin<=8?"all'alba":'verso le '+hMin}.</div></div></div>`;
   }catch(e){ el.innerHTML = '<div class="err">Meteo non disponibile al momento.</div>'; }
 }
 meteo(); setInterval(meteo, 20*60*1000);
