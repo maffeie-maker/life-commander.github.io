@@ -383,7 +383,7 @@ $('theme').addEventListener('click', () => setTheme(document.body.dataset.theme 
 feeds.forEach(f => { const o = document.createElement('option'); o.value = f.title; o.textContent = f.title.trim(); feedFilter.appendChild(o); });
 
 /* ---------- Rete: ogni feed prova diretto → rss2json → proxy; cache per feed ---------- */
-const RSS2JSON_KEY = '';   // facoltativo: chiave gratuita di rss2json.com (alza il limite giornaliero)
+const RSS2JSON_KEY = 'xqgkeqmrxuqq12rlnegcup8iubysv87bnugobese';   // facoltativo: chiave gratuita di rss2json.com (alza il limite giornaliero)
 const TTL = 25 * 60e3, POOL = 5;
 const PROXY = u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`;
 
