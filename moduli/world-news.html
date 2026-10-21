@@ -382,93 +382,102 @@ $('theme').addEventListener('click', () => setTheme(document.body.dataset.theme 
 
 feeds.forEach(f => { const o = document.createElement('option'); o.value = f.title; o.textContent = f.title.trim(); feedFilter.appendChild(o); });
 
-/* ---------- Rete: rss2json + fallback proxy, timeout, rendering progressivo ---------- */
-const viaRss2json = u => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(u)}`;
-const PROXIES = [
-  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  u => `https://corsproxy.io/?${encodeURIComponent(u)}`
-];
+/* ---------- Rete: ogni feed prova diretto → rss2json → proxy; cache per feed ---------- */
+const RSS2JSON_KEY = '';   // facoltativo: chiave gratuita di rss2json.com (alza il limite giornaliero)
+const TTL = 25 * 60e3, POOL = 5;
+const PROXY = u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`;
+
 function fetchT(url, ms = FETCH_TIMEOUT) {
   const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
   return fetch(url, { signal: c.signal }).finally(() => clearTimeout(t));
 }
 function safeDate(v) { const d = new Date(v); return isNaN(d) ? new Date(0) : (d > Date.now() ? new Date() : d); }
 
-async function getViaRss2json(feed) {
-  const res = await fetchT(viaRss2json(feed.url));
-  const data = await res.json();
-  if (data.status !== 'ok' || !data.items || !data.items.length) throw new Error(data.message || 'rss2json HTTP ' + res.status);
-  return data.items.map(i => ({
-    title: i.title, content: i.content || i.description || '', link: i.link,
-    thumbnail: i.thumbnail || (i.enclosure && i.enclosure.link) || null, pubDate: safeDate(i.pubDate)
-  }));
+function parseXml(text) {
+  const xml = new DOMParser().parseFromString(text, 'text/xml');
+  if (xml.querySelector('parsererror')) throw new Error('XML non valido');
+  const nodes = [...xml.querySelectorAll('item, entry')];
+  if (!nodes.length) throw new Error('nessun item');
+  return nodes.slice(0, 15).map(n => {
+    const tx = s => (n.querySelector(s)?.textContent || '').trim();
+    const le = n.querySelector('link');
+    const link = (le && (le.getAttribute('href') || le.textContent.trim())) || '';
+    const content = tx('encoded') || tx('content') || tx('description') || tx('summary');
+    const m = n.getElementsByTagName('media:content')[0] || n.getElementsByTagName('media:thumbnail')[0] || n.querySelector('enclosure');
+    let th = m ? m.getAttribute('url') : null;
+    if (!th) { const x = content.match(/<img[^>]+src=["']([^"']+)["']/i); th = x ? x[1] : null; }
+    return { title: tx('title'), content, link, thumbnail: th, pubDate: safeDate(tx('pubDate') || tx('published') || tx('updated') || tx('date')) };
+  });
 }
-async function getViaProxy(feed) {
-  let last;
-  for (const mk of PROXIES) {
-    try {
-      const res = await fetchT(mk(feed.url));
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const xml = new DOMParser().parseFromString(await res.text(), 'text/xml');
-      if (xml.querySelector('parsererror')) throw new Error('XML non valido');
-      const nodes = [...xml.querySelectorAll('item, entry')];
-      if (!nodes.length) throw new Error('nessun item');
-      return nodes.slice(0, 20).map(n => {
-        const tx = s => (n.querySelector(s)?.textContent || '').trim();
-        const le = n.querySelector('link');
-        const link = (le && (le.getAttribute('href') || le.textContent.trim())) || '';
-        const content = tx('encoded') || tx('content') || tx('description') || tx('summary');
-        const m = n.getElementsByTagName('media:content')[0] || n.getElementsByTagName('media:thumbnail')[0] || n.querySelector('enclosure');
-        let th = m ? m.getAttribute('url') : null;
-        if (!th) { const x = content.match(/<img[^>]+src=["']([^"']+)["']/i); th = x ? x[1] : null; }
-        return { title: tx('title'), content, link, thumbnail: th, pubDate: safeDate(tx('pubDate') || tx('published') || tx('updated') || tx('date')) };
-      });
-    } catch (e) { last = e; }
+const METHODS = {
+  async direct(f) { const r = await fetchT(f.url, 8000); if (!r.ok) throw new Error('HTTP ' + r.status); return parseXml(await r.text()); },
+  async r2j(f) {
+    const u = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(f.url)}` + (RSS2JSON_KEY ? '&api_key=' + RSS2JSON_KEY : '');
+    const d = await (await fetchT(u)).json();
+    if (d.status !== 'ok' || !d.items || !d.items.length) throw new Error(d.message || 'rss2json errore');
+    return d.items.slice(0, 15).map(i => ({ title: i.title, content: i.content || i.description || '', link: i.link,
+      thumbnail: i.thumbnail || (i.enclosure && i.enclosure.link) || null, pubDate: safeDate(i.pubDate) }));
+  },
+  async proxy(f) { const r = await fetchT(PROXY(f.url)); if (!r.ok) throw new Error('HTTP ' + r.status); return parseXml(await r.text()); }
+};
+
+const cget = f => { try { return JSON.parse(localStorage.getItem('wn-f:' + f.url)); } catch (e) { return null; } };
+const cset = (f, items, m) => { try { localStorage.setItem('wn-f:' + f.url, JSON.stringify({ t: Date.now(), m,
+  items: items.map(i => ({ ...i, content: (i.content || '').slice(0, 1500), pubDate: +new Date(i.pubDate) })) })); } catch (e) {} };
+
+async function getFeed(feed, force) {
+  const c = cget(feed);
+  if (c && !force && Date.now() - c.t < TTL) return { items: c.items, m: c.m };
+  const order = ['direct', 'r2j', 'proxy'];
+  if (c && c.m) order.sort((a, b) => (b === c.m) - (a === c.m));   // prima il metodo che ha funzionato l'ultima volta
+  const errs = [];
+  for (const m of order) {
+    try { const items = await METHODS[m](feed); cset(feed, items, m); return { items, m }; }
+    catch (e) { errs.push(m + ': ' + e.message); }
   }
-  throw last;
+  if (c) return { items: c.items, stale: true };          // tutti falliti: mostra l'ultima copia salvata
+  throw new Error(errs.join(' | '));
 }
 
-let renderTimer = null;
+function showStatus(ok, failed, when) {
+  const t = when.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  statusEl.textContent = `${ok} fonti · aggiornato alle ${t}`;
+  if (failed.length) {
+    const b = document.createElement('button');
+    b.textContent = `${failed.length} non aggiornate`;
+    b.onclick = () => failedEl.classList.toggle('show');
+    statusEl.append(' · ', b);
+    failedEl.textContent = failed.join(', ');
+  } else failedEl.classList.remove('show');
+}
+
+let renderTimer = null, loading = false;
 const scheduleRender = () => { if (!renderTimer) renderTimer = setTimeout(() => { renderTimer = null; render(); }, 350); };
 
-function loadFeeds() {
-  const fresh = [], seen = new Set();
-  let ok = 0; failedList = [];
+async function loadFeeds(force) {
+  if (loading) return; loading = true;
+  const fresh = [], seen = new Set(), failed = [], queue = [...feeds]; let ok = 0;
+  $('refresh').classList.add('spin'); statusEl.textContent = 'Caricamento…';
   if (!allArticles.length) allArticles = fresh;
-  $('refresh').classList.add('spin');
-  statusEl.textContent = 'Caricamento…';
-
-  const jobs = feeds.map(async feed => {
-    let items;
-    try { items = await getViaRss2json(feed); }
-    catch (e1) {
-      try { items = await getViaProxy(feed); }
-      catch (e2) { console.warn('Feed non raggiungibile:', feed.title, '|', e1.message, '|', e2.message); failedList.push(feed.title.trim()); return; }
+  const worker = async () => {
+    while (queue.length) {
+      const feed = queue.shift();
+      try {
+        const r = await getFeed(feed, force === true);
+        if (r.stale) failed.push(feed.title.trim() + ' (copia salvata)'); else ok++;
+        r.items.forEach(it => {
+          if (!it.link || seen.has(it.link)) return; seen.add(it.link);
+          fresh.push({ ...it, pubDate: safeDate(it.pubDate), source: feed.title, sourceLogo: feed.logo });
+        });
+      } catch (e) { console.warn('Feed non raggiungibile:', feed.title.trim(), '|', e.message); failed.push(feed.title.trim()); }
+      statusEl.textContent = `Caricamento… ${feeds.length - queue.length}/${feeds.length}`;
+      scheduleRender();
     }
-    ok++;
-    items.forEach(it => {
-      if (!it.link || seen.has(it.link)) return;
-      seen.add(it.link);
-      fresh.push({ ...it, source: feed.title, sourceLogo: feed.logo });
-    });
-    statusEl.textContent = `Caricamento… ${ok}/${feeds.length}`;
-    scheduleRender();
-  });
-
-  Promise.allSettled(jobs).then(() => {
-    allArticles = fresh; render();
-    $('refresh').classList.remove('spin');
-    const t = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-    statusEl.innerHTML = `${ok} fonti · aggiornato alle ${t}`;
-    if (failedList.length) {
-      const b = document.createElement('button');
-      b.textContent = `${failedList.length} non raggiungibili`;
-      b.onclick = () => failedEl.classList.toggle('show');
-      statusEl.append(' · ', b);
-      failedEl.textContent = failedList.join(', ');
-    } else { failedEl.classList.remove('show'); }
-    try { localStorage.setItem('wn-cache', JSON.stringify(fresh.slice(0, 150).map(a => ({ ...a, content: '', pubDate: +a.pubDate })))); } catch (e) {}
-  });
+  };
+  await Promise.all(Array.from({ length: POOL }, worker));
+  if (fresh.length) allArticles = fresh;
+  render(); $('refresh').classList.remove('spin');
+  showStatus(ok, failed, new Date()); loading = false;
 }
 
 /* ---------- Render ---------- */
@@ -539,7 +548,7 @@ function render() {
 $('more').addEventListener('click', () => { shown += PAGE; render(); });
 feedFilter.addEventListener('change', () => { shown = PAGE; render(); });
 q.addEventListener('input', () => { shown = PAGE; render(); });
-$('refresh').addEventListener('click', loadFeeds);
+$('refresh').addEventListener('click', () => loadFeeds(true));
 
 /* ---------- Sheet: materializza, interrompibile, trascinabile ---------- */
 const scrim = $('scrim'), sheet = $('sheet');
@@ -623,13 +632,12 @@ const endDrag = () => {
 grab.addEventListener('pointerup', endDrag);
 grab.addEventListener('pointercancel', endDrag);
 
-/* ---------- Avvio: mostra subito la cache, poi aggiorna ---------- */
-try {
-  const c = JSON.parse(localStorage.getItem('wn-cache') || '[]');
-  if (c.length) { allArticles = c.map(a => ({ ...a, pubDate: new Date(a.pubDate) })); render(); statusEl.textContent = 'Aggiornamento…'; }
-} catch (e) {}
+/* ---------- Avvio: mostra subito le copie salvate, poi aggiorna ---------- */
+const pre = [];
+feeds.forEach(f => { const c = cget(f); if (c) c.items.forEach(i => pre.push({ ...i, pubDate: safeDate(i.pubDate), source: f.title, sourceLogo: f.logo })); });
+if (pre.length) { allArticles = pre; render(); }
 loadFeeds();
-setInterval(loadFeeds, 20 * 60 * 1000);
+setInterval(() => loadFeeds(), 30 * 60e3);
 </script>
 </body>
 </html>
