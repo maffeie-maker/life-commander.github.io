@@ -160,6 +160,18 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
 }
 @media (min-width:1500px) and (orientation:landscape){main{max-width:1320px}}
 
+/* Card con sito a scelta */
+.acts{display:flex;gap:.5rem}
+.acts button{border:0;background:var(--seg);color:var(--tx);font:inherit;font-size:.8rem;font-weight:500;padding:.25rem .7rem;border-radius:9px;cursor:pointer}
+.acts button:active{opacity:.6}
+.frame{display:block;width:100%;height:clamp(300px,46vh,520px);border:0;border-radius:14px;background:#fff}
+.fnote{margin-top:.6rem;font-size:.75rem;color:var(--tx2)}
+.addr{display:flex;gap:.6rem}
+.addr input{flex:1;min-width:0;border:0;background:var(--seg);color:var(--tx);font:inherit;padding:.7rem .9rem;border-radius:12px;outline:0}
+.addr input.bad{box-shadow:0 0 0 2px #ff3b30}
+.addr button{border:0;background:var(--ac);color:#fff;font:inherit;font-weight:600;padding:.7rem 1.1rem;border-radius:12px;cursor:pointer}
+.addr button:active{opacity:.7}
+
 /* Materializzazione: scala + opacità, a molla smorzata */
 .m{animation:mat .7s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--i)*70ms)}
 @keyframes mat{from{opacity:0;transform:translateY(10px) scale(.975)}}
@@ -193,8 +205,8 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
     <section class="card m c5 go" style="--i:1" id="meteo" data-href="moduli/meteo-posizione.html"><div class="err">Carico il meteo…</div></section>
     <section class="card m c7" style="--i:2"><div class="lbl">Frase del giorno</div><div class="q" id="quote"></div></section>
     <section class="card wide m go" id="livecard" hidden style="--i:3" data-href="moduli/risultati-sportivi.html"><div class="lh"><div class="lbl">Partite live</div><a href="moduli/risultati-sportivi.html">Tutti i risultati ›</a></div><div class="live" id="live"></div></section>
-    <section class="card m c6 go" style="--i:4" data-href="moduli/world-news.html"><div class="lh"><div class="lbl">Le 5 notizie dall'Italia</div><a href="moduli/world-news.html">World News ›</a></div><ol class="news" id="news"><li><span class="err">Carico le notizie…</span></li></ol></section>
-    <section class="card m c6 go" style="--i:5" data-href="moduli/world-news.html"><div class="lh"><div class="lbl">Notizie internazionali</div><a href="moduli/world-news.html">World News ›</a></div><ol class="news" id="newsint"><li><span class="err">Carico le notizie…</span></li></ol></section>
+    <section class="card m c6 site" style="--i:4" data-k="sito1"></section>
+    <section class="card m c6 site" style="--i:5" data-k="sito2"></section>
   </div>
 
   <div class="lbl m" style="--i:6;margin:2.25rem 0 1rem">I tuoi moduli</div>
@@ -293,47 +305,48 @@ async function meteo(){
 }
 meteo(); setInterval(meteo, 20*60*1000);
 
-/* ---------- Notizie "hot": le storie coperte da più testate ---------- */
-const FEED_IT = [
- ["ANSA","https://www.ansa.it/sito/ansait_rss.xml"],
- ["la Repubblica","https://www.repubblica.it/rss/homepage/rss2.0.xml"],
- ["Corriere","https://xml2.corriereobjects.it/rss/homepage.xml"],
- ["Sky TG24","https://tg24.sky.it/rss/tg24.xml"]
-];
-const FEED_EN = [
- ["BBC","https://feeds.bbci.co.uk/news/world/rss.xml"],
- ["The Guardian","https://www.theguardian.com/world/rss"],
- ["Al Jazeera","https://www.aljazeera.com/xml/rss/all.xml"],
- ["New York Times","https://rss.nytimes.com/services/xml/rss/nyt/World.xml"]
-];
-const STOP = new Set(['della','delle','degli','dello','nella','nelle','sono','come','dopo','prima','anni','anno','ancora','questo','questa','sulla','dalla','alla','alle','agli','tutti','cosa','dove','quando','perche','essere','fatto','nuovo','nuova','contro','oggi','video','foto','live','ultime','notizie',
- 'about','after','their','which','would','could','these','those','while','where','being','during','against','first','again','still','other','report','reports','news','says','amid','under','years','three']);
-const tok = s => new Set(s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>4 && !STOP.has(w)));
-const simili = (a,b) => { let n=0; for(const w of a) if(b.has(w)) n++; return n>=2; };
 const esc = s => s.replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
-async function rassegna(feeds, id){
-  const ol = document.getElementById(id);
-  const res = await Promise.allSettled(feeds.map(async ([nome,url])=>{
-    const j = await (await fetch('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(url))).json();
-    if(j.status!=='ok') throw 0;
-    return j.items.slice(0,25).map(i=>({fonte:nome,titolo:i.title,link:i.link,data:new Date((i.pubDate||'').replace(' ','T')+'Z').getTime()||0,tok:tok(i.title)}));
-  }));
-  const items = res.filter(r=>r.status==='fulfilled').flatMap(r=>r.value);
-  if(!items.length){ ol.innerHTML='<li><span class="err">Notizie non disponibili al momento.</span></li>'; return; }
-  items.forEach(a=>{
-    a.fonti = new Set([a.fonte]);
-    items.forEach(b=>{ if(b!==a && b.fonte!==a.fonte && simili(a.tok,b.tok)) a.fonti.add(b.fonte); });
-  });
-  items.sort((a,b)=> b.fonti.size-a.fonti.size || b.data-a.data);
-  const top=[];
-  for(const a of items){ if(top.length>=5) break; if(!top.some(t=>simili(t.tok,a.tok))) top.push(a); }
-  ol.innerHTML = top.map(a=>`<li><a href="${esc(a.link)}" target="_blank" rel="noopener"><div><b>${esc(a.titolo)}</b>
-    <span>${a.fonti.size>1 ? 'Ne parlano: '+[...a.fonti].join(' · ') : a.fonte}</span></div></a></li>`).join('');
+/* ---------- Due card con un sito a scelta (l'indirizzo si salva nel browser) ---------- */
+function normUrl(v){
+  v = v.trim(); if(!v) return null;
+  if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(v)) v = 'https://' + v;
+  try{
+    const u = new URL(v);
+    if(!/^https?:$/.test(u.protocol)) return null;
+    if(location.protocol==='https:' && u.protocol==='http:') u.protocol = 'https:';   /* le pagine http non si possono incorporare in una https */
+    return u.href;
+  }catch(e){ return null; }
 }
-const notizie = () => rassegna(FEED_IT,'news'), internazionali = () => rassegna(FEED_EN,'newsint');
-notizie(); setTimeout(internazionali, 1500);
-setInterval(notizie, 15*60*1000); setInterval(internazionali, 15*60*1000);
+document.querySelectorAll('.site').forEach(card => {
+  const k = card.dataset.k; let url = null;
+  try{ url = localStorage.getItem(k); }catch(e){}
+  if(url && !normUrl(url)) url = null;
+  function mostra(){
+    if(url){
+      const host = new URL(url).hostname.replace(/^www\./,'');
+      card.innerHTML = `<div class="lh"><div class="lbl">${esc(host)}</div><div class="acts"><button data-a="o">Apri ↗</button><button data-a="c">Cambia</button></div></div>
+        <iframe class="frame" src="${esc(url)}" title="${esc(host)}" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+        <div class="fnote">Se il sito non si vede, non permette di essere incorporato: usa “Apri”.</div>`;
+    } else {
+      card.innerHTML = `<div class="lbl">Sito a scelta</div>
+        <form class="addr"><input type="text" inputmode="url" placeholder="Indirizzo del sito, es. ansa.it" autocomplete="off" spellcheck="false" aria-label="Indirizzo del sito"><button>Carica</button></form>`;
+    }
+  }
+  card.addEventListener('click', e => {
+    const b = e.target.closest('button[data-a]'); if(!b) return;
+    if(b.dataset.a==='o') window.open(url,'_blank','noopener');
+    else { const old = url; url = null; mostra(); const i = card.querySelector('input'); i.value = old || ''; i.focus(); i.select(); }
+  });
+  card.addEventListener('submit', e => {
+    e.preventDefault();
+    const i = card.querySelector('input'), u = normUrl(i.value);
+    if(!u){ i.classList.add('bad'); return; }
+    url = u; try{ localStorage.setItem(k,u); }catch(err){}
+    mostra();
+  });
+  mostra();
+});
 
 /* ---------- Clic su una card: apre il modulo corrispondente (i link interni restano link) ---------- */
 document.querySelectorAll('.go').forEach(c => {
