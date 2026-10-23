@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benvenuto · Life Commander</title>
+<style>
+:root{
+  --bg:#f2f2f7;--glass:rgba(255,255,255,.62);--bar:rgba(242,242,247,.72);--edge:rgba(255,255,255,.75);
+  --tx:#1d1d1f;--tx2:#5e5e63;--ac:#0071e3;--line:rgba(60,60,67,.14);--press:rgba(120,120,128,.14);
+  --sh:0 1px 2px rgba(0,0,0,.04),0 12px 32px rgba(0,0,0,.08);--seg:rgba(120,120,128,.16);--pill:#fff;
+  --b1:rgba(0,113,227,.22);--b2:rgba(175,82,222,.16);--b3:rgba(255,159,10,.16);--cloud:#b7bdc9;
+}
+:root[data-theme=dark]{
+  --bg:#000;--glass:rgba(44,44,46,.55);--bar:rgba(0,0,0,.6);--edge:rgba(255,255,255,.14);
+  --tx:#f5f5f7;--tx2:#a1a1a6;--ac:#2997ff;--line:rgba(255,255,255,.14);--press:rgba(255,255,255,.1);
+  --sh:0 1px 2px rgba(0,0,0,.4),0 16px 40px rgba(0,0,0,.5);--seg:rgba(118,118,128,.28);--pill:#636366;
+  --b1:rgba(41,151,255,.26);--b2:rgba(191,90,242,.2);--b3:rgba(255,159,10,.14);--cloud:#8e8e93;
+}
+*{box-sizing:border-box;margin:0}
+html{font:100%/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;font-optical-sizing:auto;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--tx);min-height:100vh;transition:background-color .4s,color .4s}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(60rem 38rem at 8% -8%,var(--b1),transparent 60%),radial-gradient(48rem 36rem at 100% 8%,var(--b2),transparent 60%),radial-gradient(50rem 36rem at 45% 112%,var(--b3),transparent 60%)}
+
+/* Barra traslucida: il contenuto scorre sotto, bordo che sfuma invece del filetto */
+.bar{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:.7rem clamp(1rem,3vw,2.5rem);
+  background:var(--bar);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}
+.bar::after{content:"";position:absolute;left:0;right:0;top:100%;height:1.25rem;pointer-events:none;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  -webkit-mask-image:linear-gradient(#000,transparent);mask-image:linear-gradient(#000,transparent)}
+.brand{font-size:.95rem;font-weight:600;letter-spacing:.005em}
+.seg{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--seg);border-radius:9px;padding:2px}
+.seg i{position:absolute;top:2px;bottom:2px;left:2px;width:calc(50% - 2px);background:var(--pill);border-radius:7px;box-shadow:0 1px 3px rgba(0,0,0,.18);transition:transform .35s cubic-bezier(.2,.9,.25,1)}
+.seg[data-t=dark] i{transform:translateX(100%)}
+.seg button{position:relative;border:0;background:none;color:var(--tx);font:inherit;font-size:.8rem;font-weight:500;letter-spacing:.01em;padding:.25rem .85rem;cursor:pointer;border-radius:7px}
+.seg button:active{opacity:.6}
+
+main{max-width:1080px;margin:0 auto;padding:1.5rem clamp(1rem,3vw,2.5rem) 4rem}
+.hero{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.25rem}
+.when{text-align:right;flex:none}
+h1{flex:1;min-width:0;font-size:clamp(1.9rem,4.6vw,3.1rem);line-height:1.05;letter-spacing:-.03em;font-weight:700}
+.date{margin-top:.3rem;font-size:.95rem;letter-spacing:-.005em;color:var(--tx2);font-weight:500;text-transform:capitalize;white-space:nowrap}
+.clock{font-size:clamp(2rem,4vw,3rem);line-height:1;font-weight:200;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.clock .s{color:var(--tx2);font-weight:200}
+
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:1.25rem}
+.card{position:relative;background:var(--glass);-webkit-backdrop-filter:blur(40px) saturate(180%);backdrop-filter:blur(40px) saturate(180%);
+  border-radius:26px;padding:1.6rem;box-shadow:var(--sh),inset 0 1px 0 var(--edge)}
+.wide{grid-column:1/-1}
+.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}
+.lbl{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);margin-bottom:1rem}
+
+/* Meteo */
+.top{display:flex;align-items:baseline;gap:.2rem .75rem;flex-wrap:wrap}
+.city{font-size:1.25rem;font-weight:600;letter-spacing:-.01em}
+.upd{font-size:.8rem;color:var(--tx2);letter-spacing:.01em}
+.row{display:flex;align-items:center;gap:.5rem}
+.wb{display:flex;align-items:center;gap:.4rem 2rem;flex-wrap:wrap;margin-top:.35rem}
+.wd{flex:1;min-width:13rem}
+#meteo{padding:1.15rem 1.4rem}
+.t{font-size:clamp(3.75rem,8vw,5rem);font-weight:100;letter-spacing:-.06em;line-height:1;margin-left:-.05em}
+.ico{width:3.5rem;height:3.5rem;flex:none}
+.desc{font-size:1.05rem;font-weight:500;letter-spacing:-.005em}
+.rr{margin:.2rem 0;font-size:.85rem;font-weight:500;color:var(--tx2);font-variant-numeric:tabular-nums}
+.rng{position:relative;flex:1;height:5px;border-radius:3px;background:linear-gradient(90deg,#64d2ff,#34c759,#ffd60a,#ff9f0a)}
+.rng i{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.25),0 1px 3px rgba(0,0,0,.3)}
+.sum{font-size:.95rem;color:var(--tx2);line-height:1.45}
+
+/* Frase */
+.q{display:flex;flex-direction:column;justify-content:center;min-height:calc(100% - 2rem)}
+.q p{font-size:clamp(1.4rem,2.8vw,2.1rem);line-height:1.22;letter-spacing:-.022em;font-weight:600}
+.q small{display:block;margin-top:1rem;color:var(--tx2);font-size:.95rem;font-weight:500}
+
+/* Notizie */
+ol{list-style:none;padding:0;counter-reset:n}
+.news a{display:flex;gap:1rem;align-items:baseline;color:var(--tx);text-decoration:none;padding:.85rem .75rem;margin:0 -.75rem;border-radius:14px;
+  transition:background-color .15s,transform .1s ease-out}
+.news a::before{counter-increment:n;content:counter(n);flex:none;min-width:1.5rem;font-size:1.5rem;font-weight:200;color:var(--tx2);letter-spacing:-.02em}
+.news a:hover{background:var(--press)}
+.news a:active{background:var(--press);transform:scale(.985)}
+.news b{display:block;font-weight:600;font-size:1.05rem;line-height:1.32;letter-spacing:-.012em}
+.news span{display:block;margin-top:.2rem;font-size:.8rem;color:var(--tx2);letter-spacing:.01em}
+.news li+li{box-shadow:inset 0 1px 0 var(--line);margin:0 .5rem 0 2.5rem}
+.news li+li a{margin:0 -.75rem 0 -2.5rem;padding-left:3.25rem}
+.err{color:var(--tx2);font-size:.9rem}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+
+/* Moduli */
+:root{--pal:rgba(255,255,255,.84)}:root[data-theme=dark]{--pal:rgba(44,44,46,.86)}
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:1rem}
+.mod{display:flex;gap:.9rem;align-items:center;padding:1rem 1.1rem;border-radius:20px;text-decoration:none;color:var(--tx);
+  background:var(--glass);-webkit-backdrop-filter:blur(40px) saturate(180%);backdrop-filter:blur(40px) saturate(180%);
+  box-shadow:var(--sh),inset 0 1px 0 var(--edge);transition:transform .1s ease-out}
+.mod:active{transform:scale(.97)}
+.ic,.pi{display:grid;place-items:center;flex:none;color:#fff;width:2.75rem;height:2.75rem;border-radius:13px;font-size:1.5rem}
+.mod b,.pal b{display:block;font-weight:600;letter-spacing:-.01em}
+.mod small,.pal small{display:block;color:var(--tx2);font-size:.8rem;letter-spacing:.01em}
+
+/* Barra: pulsante di ricerca */
+.rt{display:flex;gap:.6rem;align-items:center}
+.srch{display:flex;gap:.55rem;align-items:center;border:0;background:var(--seg);color:var(--tx2);font:inherit;font-size:.8rem;font-weight:500;padding:.3rem .45rem .3rem .8rem;border-radius:9px;cursor:pointer}
+.srch kbd{font:inherit;font-size:.72rem;padding:.05rem .4rem;border-radius:5px;background:var(--pill);color:var(--tx)}
+.srch:active{opacity:.6}
+a.srch{text-decoration:none;padding:.3rem .8rem}
+@media(max-width:700px){.cl{display:none}}
+
+/* Palette dei comandi: scrim che attenua lo sfondo, pannello che si materializza dal pulsante */
+.scrim{position:fixed;inset:0;z-index:50;display:flex;justify-content:center;align-items:flex-start;padding:14vh 1rem 1rem;background:rgba(0,0,0,.3);opacity:0;visibility:hidden;transition:opacity .25s,visibility 0s .25s}
+.scrim.open{opacity:1;visibility:visible;transition:opacity .25s}
+.pal{width:min(560px,100%);background:var(--pal);-webkit-backdrop-filter:blur(50px) saturate(180%);backdrop-filter:blur(50px) saturate(180%);
+  border-radius:22px;box-shadow:0 24px 70px rgba(0,0,0,.35),inset 0 1px 0 var(--edge);overflow:hidden;
+  transform:translateY(-8px) scale(.96);transform-origin:top center;transition:transform .45s cubic-bezier(.16,1,.3,1)}
+.open .pal{transform:none}
+.pal input{width:100%;border:0;background:none;color:var(--tx);font:inherit;font-size:1.15rem;letter-spacing:-.01em;padding:1.1rem 1.25rem;outline:0}
+.pal ul{list-style:none;padding:.4rem;max-height:50vh;overflow:auto;border-top:1px solid var(--line)}
+.pal li{display:flex;gap:.8rem;align-items:center;padding:.5rem .7rem;border-radius:12px;cursor:pointer}
+.pal li.on{background:var(--ac);color:#fff}
+.pal li.on small{color:rgba(255,255,255,.82)}
+.pal li:active{transform:scale(.99)}
+.pi{width:2.1rem;height:2.1rem;border-radius:9px;font-size:1.1rem}
+@media(max-width:520px){.srch span{display:none}}
+@media(prefers-reduced-motion:reduce){.pal,.scrim{transition:opacity .2s}.pal{transform:none}}
+@media(prefers-reduced-transparency:reduce){.mod,.pal{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--bg)}}
+
+[hidden]{display:none!important}
+/* Partite live */
+.lh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1rem}
+.lh .lbl{margin:0}
+.lh a{font-size:.85rem;color:var(--ac);text-decoration:none;font-weight:500}
+.lnote{font-size:.9rem;color:var(--tx2);margin-bottom:.9rem}
+.lnote:empty{display:none}
+.live{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.75rem}
+.mt{display:block;padding:.85rem 1rem;border-radius:16px;background:var(--press);color:var(--tx);text-decoration:none;transition:transform .1s ease-out}
+.mt:active{transform:scale(.97)}
+.ml{display:flex;justify-content:space-between;gap:.5rem;font-size:.75rem;color:var(--tx2);letter-spacing:.01em;margin-bottom:.5rem}
+.ml .lv{color:#ff3b30;font-weight:600}
+.tm{display:flex;align-items:center;gap:.6rem;padding:.15rem 0}
+.tm img{width:1.5rem;height:1.5rem;object-fit:contain;flex:none}
+.tm span{flex:1;min-width:0;font-weight:500;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tm strong{font-weight:600;font-variant-numeric:tabular-nums}
+
+/* Card cliccabili e adattamento all'orientamento */
+.go{cursor:pointer;transition:transform .1s ease-out}
+.go:active{transform:scale(.985)}
+@media (orientation:portrait),(max-width:760px){
+  .grid>*{grid-column:1/-1}
+}
+@media (max-width:700px){
+  .mods{grid-template-columns:repeat(2,1fr)}
+  .mod{flex-direction:column;align-items:flex-start;gap:.6rem}
+}
+@media (orientation:landscape) and (max-height:520px){
+  main{padding-top:.75rem;padding-bottom:2rem}
+  .hero{margin-bottom:1rem}
+  h1{font-size:2rem}.clock{font-size:2.2rem}.date{font-size:1rem}
+  .t{font-size:4rem}.ico{width:3.5rem;height:3.5rem}
+  .card{padding:1.1rem;border-radius:20px}.grid{gap:.75rem}
+  .bar{padding:.35rem clamp(1rem,3vw,2.5rem)}
+}
+@media (min-width:1500px) and (orientation:landscape){main{max-width:1320px}}
+
+/* Card con sito a scelta */
+.acts{display:flex;gap:.5rem}
+.acts button{border:0;background:var(--seg);color:var(--tx);font:inherit;font-size:.8rem;font-weight:500;padding:.25rem .7rem;border-radius:9px;cursor:pointer}
+.acts button:active{opacity:.6}
+.frame{display:block;width:100%;height:clamp(300px,46vh,520px);border:0;border-radius:14px;background:#fff}
+.fnote{margin-top:.6rem;font-size:.75rem;color:var(--tx2)}
+.addr{display:flex;gap:.6rem}
+.addr input{flex:1;min-width:0;border:0;background:var(--seg);color:var(--tx);font:inherit;padding:.7rem .9rem;border-radius:12px;outline:0}
+.addr input.bad{box-shadow:0 0 0 2px #ff3b30}
+.addr button{border:0;background:var(--ac);color:#fff;font:inherit;font-weight:600;padding:.7rem 1.1rem;border-radius:12px;cursor:pointer}
+.addr button:active{opacity:.7}
+
+/* Materializzazione: scala + opacità, a molla smorzata */
+.m{animation:mat .7s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--i)*70ms)}
+@keyframes mat{from{opacity:0;transform:translateY(10px) scale(.975)}}
+
+@media(max-width:760px){.hero{align-items:flex-start}}
+@media(prefers-reduced-motion:reduce){.m{animation:fade .3s backwards}@keyframes fade{from{opacity:0}}.seg i,.news a,.go,.mod,.mt{transition:none}}
+@media(prefers-reduced-transparency:reduce){.card,.bar{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--bg)}.bar::after{display:none}.card{box-shadow:var(--sh),inset 0 0 0 1px var(--line)}}
+@media(prefers-contrast:more){:root{--tx2:#3a3a3c}:root[data-theme=dark]{--tx2:#d1d1d6}.card{box-shadow:var(--sh),inset 0 0 0 1px var(--tx2)}}
+@media (min-width:800px){.grid>.c5{grid-column:span 5}.grid>.c7{grid-column:span 7}.grid>.c6{grid-column:span 6}}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="brand">Life Commander</div>
+  <div class="rt">
+    <a class="srch cl" href="index.html" title="Torna al launcher classico"><span>Launcher classico</span></a>
+    <button class="srch" id="openpal" aria-label="Cerca moduli"><span>Cerca</span><kbd id="kbd">⌘K</kbd></button>
+    <div class="seg" id="seg" data-t="light" role="group" aria-label="Tema">
+      <i></i><button data-v="light" aria-pressed="true">Chiaro</button><button data-v="dark" aria-pressed="false">Scuro</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="hero m" style="--i:0">
+    <h1 id="greet">Ciao, Emanuele</h1>
+    <div class="when"><div class="clock" id="clock">--:--</div><div class="date" id="date"></div></div>
+  </div>
+
+  <div class="grid">
+    <section class="card m c5 go" style="--i:1" id="meteo" data-href="moduli/meteo-posizione.html"><div class="err">Carico il meteo…</div></section>
+    <section class="card m c7" style="--i:2"><div class="lbl">Frase del giorno</div><div class="q" id="quote"></div></section>
+    <section class="card wide m go" id="livecard" hidden style="--i:3" data-href="moduli/risultati-sportivi.html"><div class="lh"><div class="lbl">Partite live</div><a href="moduli/risultati-sportivi.html">Tutti i risultati ›</a></div><div class="live" id="live"></div></section>
+    <section class="card m c6 site" style="--i:4" data-k="sito1"></section>
+    <section class="card m c6 site" style="--i:5" data-k="sito2"></section>
+  </div>
+
+  <div class="lbl m" style="--i:6;margin:2.25rem 0 1rem">I tuoi moduli</div>
+  <div class="mods m" id="mods" style="--i:7"></div>
+</main>
+
+<div class="scrim" id="pal" role="dialog" aria-label="Cerca moduli">
+  <div class="pal">
+    <input id="pin" type="text" placeholder="Cerca un modulo o un comando…" autocomplete="off" spellcheck="false">
+    <ul id="pl"></ul>
+  </div>
+</div>
+
+<script>
+const NOME = "Emanuele";
+const LAT = 44.7708, LON = 10.7822, CITTA = "Correggio, Emilia-Romagna, Italia";
+
+/* ---------- Tema (scelta manuale) ---------- */
+const root = document.documentElement, seg = document.getElementById('seg');
+function setTema(t){
+  root.dataset.theme = t; seg.dataset.t = t;
+  seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===t));
+  try{localStorage.setItem('tema',t)}catch(e){}
+}
+let t0='light'; try{t0=localStorage.getItem('tema')||'light'}catch(e){}
+setTema(t0);
+seg.querySelectorAll('button').forEach(b => b.addEventListener('pointerdown', () => setTema(b.dataset.v)));
+
+/* ---------- Saluto, data, ora ---------- */
+function saluto(h){
+  if(h>=5 && h<12) return 'Buongiorno';
+  if(h>=12 && h<18) return 'Buon pomeriggio';
+  if(h>=18 && h<22) return 'Buonasera';
+  return 'Buonanotte';
+}
+function tick(){
+  const n = new Date(), p = x => String(x).padStart(2,'0');
+  document.getElementById('greet').textContent = saluto(n.getHours()) + ', ' + NOME;
+  document.getElementById('date').textContent = n.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('clock').textContent = p(n.getHours())+':'+p(n.getMinutes());
+}
+tick(); setInterval(tick,1000);
+
+/* ---------- Frase del giorno (modifica/aggiungi liberamente) ---------- */
+const FRASI = [
+ ["Non è che abbiamo poco tempo, ma ne perdiamo molto.","Seneca"],
+ ["Hai potere sulla tua mente, non sugli eventi esterni. Capiscilo e troverai la forza.","Marco Aurelio"],
+ ["Non sono le cose a turbare gli uomini, ma i giudizi che ne danno.","Epitteto"],
+ ["Un viaggio di mille miglia comincia con un passo.","Lao Tzu"],
+ ["Nessun uomo entra due volte nello stesso fiume.","Eraclito"],
+ ["Si soffre più spesso nell'immaginazione che nella realtà.","Seneca"],
+ ["Ciò che ostacola il cammino diventa il cammino.","Marco Aurelio"],
+ ["Conosci te stesso.","Iscrizione del tempio di Delfi"],
+ ["Chi ha un perché abbastanza forte può sopportare quasi ogni come.","Nietzsche"],
+ ["La vita, se sai usarla, è lunga.","Seneca"],
+ ["Chi conosce gli altri è sapiente; chi conosce se stesso è illuminato.","Lao Tzu"],
+ ["La felicità della tua vita dipende dalla qualità dei tuoi pensieri.","Marco Aurelio"],
+ ["L'acqua scava la roccia non con la forza, ma cadendo spesso.","Ovidio"],
+ ["Comincia a fare ciò che è necessario, poi ciò che è possibile, e all'improvviso farai l'impossibile.","attribuita a Francesco d'Assisi"]
+];
+(function(){
+  const n = new Date(), g = Math.floor((n - new Date(n.getFullYear(),0,0))/864e5), f = FRASI[g % FRASI.length];
+  document.getElementById('quote').innerHTML = '<p>“'+f[0]+'”</p><small>'+f[1]+'</small>';
+})();
+
+/* ---------- Meteo (Open-Meteo, Correggio) ---------- */
+const WMO = {0:'Sereno',1:'Prevalentemente sereno',2:'Parzialmente nuvoloso',3:'Nuvoloso',45:'Nebbia',48:'Nebbia con brina',51:'Pioggerella',53:'Pioggerella',55:'Pioggerella intensa',56:'Pioggia gelata',57:'Pioggia gelata',61:'Pioggia debole',63:'Pioggia',65:'Pioggia forte',66:'Pioggia gelata',67:'Pioggia gelata',71:'Neve debole',73:'Neve',75:'Neve forte',77:'Nevischio',80:'Rovesci',81:'Rovesci',82:'Rovesci violenti',85:'Rovesci di neve',86:'Rovesci di neve',95:'Temporale',96:'Temporale con grandine',99:'Temporale con grandine'};
+const CLOUD = '<path d="M22 50a11 11 0 0 1 1-22 15 15 0 0 1 29 4 9 9 0 0 1-1 18z" fill="var(--cloud)"/>';
+const SUN = '<circle cx="32" cy="32" r="12" fill="#ffb800"/><g stroke="#ffb800" stroke-width="3" stroke-linecap="round"><path d="M32 8v6M32 50v6M8 32h6M50 32h6M15 15l4 4M45 45l4 4M49 15l-4 4M19 45l-4 4"/></g>';
+function icona(c){
+  let s;
+  if(c===0||c===1) s = SUN;
+  else if(c===2) s = '<g transform="translate(-8 -8) scale(.75)">'+SUN+'</g><g transform="translate(6 4)">'+CLOUD+'</g>';
+  else if(c===45||c===48) s = CLOUD+'<g stroke="#9aa0ad" stroke-width="3" stroke-linecap="round"><path d="M16 55h30M22 60h30"/></g>';
+  else if(c>=71&&c<=77||c===85||c===86) s = CLOUD+'<g fill="#fff"><circle cx="24" cy="57" r="2.5"/><circle cx="35" cy="59" r="2.5"/><circle cx="46" cy="57" r="2.5"/></g>';
+  else if(c>=95) s = CLOUD+'<path d="M34 44l-7 11h6l-3 8 10-12h-6z" fill="#ffd60a"/>';
+  else if(c>=51) s = CLOUD+'<g stroke="#4aa8ff" stroke-width="3" stroke-linecap="round"><path d="M24 55l-2 6M35 55l-2 6M46 55l-2 6"/></g>';
+  else s = CLOUD;
+  return '<svg class="ico" viewBox="0 0 64 64" aria-hidden="true">'+s+'</svg>';
+}
+async function meteo(){
+  const el = document.getElementById('meteo');
+  try{
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,weather_code&hourly=temperature_2m&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome&forecast_days=1`;
+    const d = await (await fetch(u)).json(), c = d.current, r = Math.round;
+    const H = d.hourly.temperature_2m.slice(0,24);
+    const hMax = H.indexOf(Math.max(...H)), hMin = H.indexOf(Math.min(...H));
+    const mx = d.daily.temperature_2m_max[0], mn = d.daily.temperature_2m_min[0];
+    const hh = new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+    el.innerHTML = `<div class="top"><span class="city">${CITTA}</span><span class="upd">Aggiornato alle ${hh}</span></div>
+      <div class="wb"><div class="row"><div class="t">${r(c.temperature_2m)}°</div>${icona(c.weather_code)}</div>
+      <div class="wd"><div class="desc">${WMO[c.weather_code]||'—'} · percepita ${r(c.apparent_temperature)}°</div>
+      <div class="rr">Max ${r(mx)}° · Min ${r(mn)}°</div>
+      <div class="sum">Massima verso le ${hMax}, minima ${hMin<=8?"all'alba":'verso le '+hMin}.</div></div></div>`;
+  }catch(e){ el.innerHTML = '<div class="err">Meteo non disponibile al momento.</div>'; }
+}
+meteo(); setInterval(meteo, 20*60*1000);
+
+const esc = s => s.replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+/* ---------- Due card con un sito a scelta (l'indirizzo si salva nel browser) ---------- */
+function normUrl(v){
+  v = v.trim(); if(!v) return null;
+  if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(v)) v = 'https://' + v;
+  try{
+    const u = new URL(v);
+    if(!/^https?:$/.test(u.protocol)) return null;
+    if(location.protocol==='https:' && u.protocol==='http:') u.protocol = 'https:';   /* le pagine http non si possono incorporare in una https */
+    return u.href;
+  }catch(e){ return null; }
+}
+document.querySelectorAll('.site').forEach(card => {
+  const k = card.dataset.k; let url = null;
+  try{ url = localStorage.getItem(k); }catch(e){}
+  if(url && !normUrl(url)) url = null;
+  function mostra(){
+    if(url){
+      const host = new URL(url).hostname.replace(/^www\./,'');
+      card.innerHTML = `<div class="lh"><div class="lbl">${esc(host)}</div><div class="acts"><button data-a="o">Apri ↗</button><button data-a="c">Cambia</button></div></div>
+        <iframe class="frame" src="${esc(url)}" title="${esc(host)}" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+        <div class="fnote">Se il sito non si vede, non permette di essere incorporato: usa “Apri”.</div>`;
+    } else {
+      card.innerHTML = `<div class="lbl">Sito a scelta</div>
+        <form class="addr"><input type="text" inputmode="url" placeholder="Indirizzo del sito, es. ansa.it" autocomplete="off" spellcheck="false" aria-label="Indirizzo del sito"><button>Carica</button></form>`;
+    }
+  }
+  card.addEventListener('click', e => {
+    const b = e.target.closest('button[data-a]'); if(!b) return;
+    if(b.dataset.a==='o') window.open(url,'_blank','noopener');
+    else { const old = url; url = null; mostra(); const i = card.querySelector('input'); i.value = old || ''; i.focus(); i.select(); }
+  });
+  card.addEventListener('submit', e => {
+    e.preventDefault();
+    const i = card.querySelector('input'), u = normUrl(i.value);
+    if(!u){ i.classList.add('bad'); return; }
+    url = u; try{ localStorage.setItem(k,u); }catch(err){}
+    mostra();
+  });
+  mostra();
+});
+
+/* ---------- Clic su una card: apre il modulo corrispondente (i link interni restano link) ---------- */
+document.querySelectorAll('.go').forEach(c => {
+  c.setAttribute('tabindex','0'); c.setAttribute('role','link');
+  c.addEventListener('click', e => { if(!e.target.closest('a')) location.href = c.dataset.href; });
+  c.addEventListener('keydown', e => { if(e.key==='Enter' && e.target===c) location.href = c.dataset.href; });
+});
+
+/* ---------- Partite live (Serie A, Champions League, NFL) ---------- */
+const LEGHE = [['Serie A','soccer/ita.1'],['Champions League','soccer/uefa.champions'],['NFL','football/nfl']];
+async function live(){
+  const card = document.getElementById('livecard'), el = document.getElementById('live');
+  const res = await Promise.allSettled(LEGHE.map(async ([nome,path]) => {
+    const j = await (await fetch('https://site.api.espn.com/apis/site/v2/sports/'+path+'/scoreboard')).json();
+    return (j.events||[]).map(ev => {
+      const c = ev.competitions[0].competitors, h = c.find(x=>x.homeAway==='home'), a = c.find(x=>x.homeAway==='away');
+      return {lega:nome, stato:ev.status.type.state, det:ev.status.type.shortDetail, h, a};
+    });
+  }));
+  const lista = res.filter(r=>r.status==='fulfilled').flatMap(r=>r.value).filter(e => e.stato==='in');
+  if(!lista.length){ card.hidden = true; el.innerHTML = ''; return; }   /* nessuna partita live: la card non si vede */
+  const riga = x => `<div class="tm"><img src="${esc(x.team.logo||'')}" alt="" onerror="this.style.visibility='hidden'"><span>${esc(x.team.shortDisplayName||x.team.displayName)}</span><strong>${esc(String(x.score??'0'))}</strong></div>`;
+  el.innerHTML = lista.map(e => `<a class="mt" href="moduli/risultati-sportivi.html"><div class="ml"><span>${e.lega}</span><span class="lv">● ${esc(e.det)}</span></div>${riga(e.h)}${riga(e.a)}</a>`).join('');
+  card.hidden = false;
+}
+live(); setInterval(live, 2*60*1000);
+
+/* ---------- Moduli: modifica qui nomi e file (benvenuto.html sta nella radice, accanto a index.html) ---------- */
+const MODULI = [
+ {n:'Meteo',d:'Condizioni, aria, vento, luna',h:'moduli/meteo-posizione.html',e:'🌤️',c:'linear-gradient(135deg,#4facfe,#0a84ff)',k:'meteo tempo aria uv vento luna posizione'},
+ {n:'Dashboard',d:'Meteo, TV e news affiancati',h:'moduli/dashboard.html',e:'🧭',c:'linear-gradient(135deg,#8e8e93,#636366)',k:'dashboard colonne'},
+ {n:'TV + Radio',d:'Video e radio insieme',h:'moduli/tv-radio.html',e:'📺',c:'linear-gradient(135deg,#ff6b6b,#ff3b30)',k:'tv radio rai sky video'},
+ {n:'TV',d:'Canali italiani da elenco',h:'moduli/tv.html',e:'🎞️',c:'linear-gradient(135deg,#ff9f0a,#ff7a00)',k:'tv canali iptv televisione'},
+ {n:'Radio',d:'Stazioni e palinsesto',h:'moduli/radio-commander.html',e:'📻',c:'linear-gradient(135deg,#ff6482,#ff2d55)',k:'radio palinsesto stazioni'},
+ {n:'World News',d:'Rassegna stampa multi-fonte',h:'moduli/world-news.html',e:'📰',c:'linear-gradient(135deg,#5ac8fa,#007aff)',k:'news notizie rss rassegna'},
+ {n:'Multi Vista',d:'Quattro riquadri liberi',h:'moduli/multi-vista.html',e:'🔲',c:'linear-gradient(135deg,#bf5af2,#af52de)',k:'multi vista riquadri finestre'},
+ {n:'Risultati sportivi',d:'Serie A, Champions, NFL live',h:'moduli/risultati-sportivi.html',e:'⚽',c:'linear-gradient(135deg,#30d158,#248a3d)',k:'risultati sport calcio partite nfl champions'},
+ {n:'WikiME',d:'Cerca un argomento nelle fonti',h:'moduli/wikime.html',e:'🔎',c:'linear-gradient(135deg,#66d4cf,#30b0c7)',k:'wikime ricerca argomento fonti'},
+ {n:'WikiME Fonti',d:'Ricerca multi-fonte su un argomento',h:'moduli/wikime-fonti.html',e:'📚',c:'linear-gradient(135deg,#5ac8fa,#0a84ff)',k:'wikime fonti ricerca argomento'}
+];
+document.getElementById('mods').innerHTML = MODULI.map(m =>
+  `<a class="mod" href="${m.h}"><span class="ic" style="background:${m.c}">${m.e}</span><span><b>${m.n}</b><small>${m.d}</small></span></a>`).join('');
+
+/* ---------- Palette dei comandi: Cmd/Ctrl+K oppure "/" ---------- */
+const pal = document.getElementById('pal'), pin = document.getElementById('pin'), pl = document.getElementById('pl');
+document.getElementById('kbd').textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl K';
+const AZIONI = [{n:'Cambia tema',d:'Alterna chiaro e scuro',e:'◐',c:'#8e8e93',k:'tema scuro chiaro notte',fn:()=>setTema(root.dataset.theme==='dark'?'light':'dark')}];
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+let vis = [], sel = 0;
+function disegna(){
+  pl.innerHTML = vis.length ? vis.map((m,i)=>`<li data-i="${i}" class="${i===sel?'on':''}"><span class="pi" style="background:${m.c}">${m.e}</span><span><b>${m.n}</b><small>${m.d}</small></span></li>`).join('')
+    : '<li style="cursor:default"><span class="err">Nessun risultato</span></li>';
+  const on = pl.querySelector('.on'); if(on) on.scrollIntoView({block:'nearest'});
+}
+function filtra(){
+  const w = norm(pin.value.trim()).split(/\s+/).filter(Boolean);
+  vis = [...MODULI,...AZIONI].filter(m => { const t = norm(m.n+' '+m.d+' '+m.k); return w.every(x => t.includes(x)); });
+  sel = 0; disegna();
+}
+function apri(){ pal.classList.add('open'); pin.value=''; filtra(); pin.focus(); }
+function chiudi(){ pal.classList.remove('open'); pin.blur(); }
+function esegui(m){ if(m.fn){ m.fn(); chiudi(); } else location.href = m.h; }
+
+document.addEventListener('keydown', e => {
+  const aperta = pal.classList.contains('open');
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); aperta ? chiudi() : apri(); return; }
+  if(!aperta){ if(e.key==='/' && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)){ e.preventDefault(); apri(); } return; }
+  if(e.key==='Escape') chiudi();
+  else if(e.key==='ArrowDown' && vis.length){ e.preventDefault(); sel=(sel+1)%vis.length; disegna(); }
+  else if(e.key==='ArrowUp' && vis.length){ e.preventDefault(); sel=(sel-1+vis.length)%vis.length; disegna(); }
+  else if(e.key==='Enter' && vis[sel]) esegui(vis[sel]);
+});
+pin.addEventListener('input', filtra);
+pal.addEventListener('pointerdown', e => { if(e.target===pal) chiudi(); });
+pl.addEventListener('click', e => { const li = e.target.closest('li[data-i]'); if(li) esegui(vis[+li.dataset.i]); });
+document.getElementById('openpal').addEventListener('pointerdown', e => { e.preventDefault(); apri(); });
+</script>
+</body>
+</html>
