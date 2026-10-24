@@ -221,6 +221,8 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
   .ghost{display:none}
 }
 .agg{font-size:.75rem;color:var(--tx2);align-self:center;margin-right:.2rem;font-variant-numeric:tabular-nums}
+.acts .tg{background:var(--seg);color:var(--tx2)}
+.acts .tg.on{background:var(--ac);color:#fff}
 </style>
 </head>
 <body>
@@ -449,12 +451,13 @@ function sito(c, cb){
   function mostra(){
     if(c.url && !modifica){
       let host; try{ host = c.label || new URL(c.url, location.href).hostname.replace(/^www\./,''); }catch(e){ host = c.url; }
-      cb.innerHTML = `<div class="lh"><div class="lbl">${esc(host)}</div><div class="acts"><span class="agg"></span><button data-a="o">Apri ↗</button><button data-a="c">Cambia</button></div></div>
+      const tg = c.label ? '' : '<button data-a="t" class="tg'+(c.auto===false?'':' on')+'" aria-pressed="'+(c.auto!==false)+'" title="Ricarica il sito ogni 10 minuti">Auto 10′</button>';
+      cb.innerHTML = `<div class="lh"><div class="lbl">${esc(host)}</div><div class="acts"><span class="agg"></span>${tg}<button data-a="o">Apri ↗</button><button data-a="c">Cambia</button></div></div>
         <iframe class="frame" src="${esc(c.url)}" title="${esc(host)}" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>`
         + (c.label ? '' : '<div class="fnote">Se il sito non si vede, non permette di essere incorporato: usa “Apri”.</div>');
       cb.querySelector('iframe').addEventListener('load', () => {
         const a = cb.querySelector('.agg');
-        if(a) a.textContent = 'Agg. ' + new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+        if(a && !c.label) a.textContent = 'Agg. ' + new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
       });
     } else {
       cb.innerHTML = `<div class="lbl">Sito a scelta</div><form class="addr"><input type="text" inputmode="url" placeholder="Indirizzo del sito, es. ansa.it" autocomplete="off" spellcheck="false" aria-label="Indirizzo del sito"><button>Carica</button></form>`;
@@ -464,6 +467,11 @@ function sito(c, cb){
   }
   cb.addEventListener('click', e => {
     const b = e.target.closest('button[data-a]'); if(!b) return;
+    if(b.dataset.a==='t'){
+      c.auto = (c.auto === false); salvaCarte();
+      b.classList.toggle('on', c.auto !== false); b.setAttribute('aria-pressed', c.auto !== false);
+      return;
+    }
     if(b.dataset.a==='o') window.open(new URL(c.url, location.href).href, '_blank', 'noopener');
     else { modifica = true; mostra(); }
   });
@@ -605,15 +613,17 @@ cv.addEventListener('keydown', e => {
 });
 sync();
 
-/* i siti incorporati si ricaricano ogni 10 minuti (non in modifica, non a scheda nascosta; al ritorno sulla scheda si aggiornano se sono scaduti) */
+/* i siti esterni incorporati si ricaricano ogni 10 minuti; i moduli del sito mai (non in modifica, non a scheda nascosta; al ritorno sulla scheda si aggiornano se sono scaduti) */
 const SITI_MIN = 10;
 let ultimoAgg = Date.now();
 function aggiornaSiti(){
   if(inEdit() || document.hidden) return;
   ultimoAgg = Date.now();
-  document.querySelectorAll('.cc[data-tipo=sito] iframe').forEach(f => {
-    const u = f.getAttribute('src'); if(!u) return;
-    const abs = new URL(u, location.href).href;
+  carte.forEach(c => {
+    if(c.tipo!=='sito' || !c.url || c.label || c.auto===false) return;   /* moduli e siti con Auto spento: mai */
+    const el = els.get(c.id), f = el && el.querySelector('iframe'); if(!f) return;
+    const abs = new URL(c.url, location.href).href;
+    if(new URL(abs).origin === location.origin) return;
     try{ f.contentWindow.location.replace(abs); }catch(e){ f.src = abs; }
   });
 }
