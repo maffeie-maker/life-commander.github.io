@@ -36,7 +36,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 .seg button{position:relative;border:0;background:none;color:var(--tx);font:inherit;font-size:.8rem;font-weight:500;letter-spacing:.01em;padding:.25rem .85rem;cursor:pointer;border-radius:7px}
 .seg button:active{opacity:.6}
 
-main{max-width:1080px;margin:0 auto;padding:1.5rem clamp(1rem,3vw,2.5rem) 4rem}
+main{max-width:none;margin:0 auto;padding:1.5rem clamp(1rem,3vw,2.5rem) 4rem}
 .hero{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.25rem}
 .when{text-align:right;flex:none}
 h1{flex:1;min-width:0;font-size:clamp(1.9rem,4.6vw,3.1rem);line-height:1.05;letter-spacing:-.03em;font-weight:700}
@@ -44,7 +44,7 @@ h1{flex:1;min-width:0;font-size:clamp(1.9rem,4.6vw,3.1rem);line-height:1.05;lett
 .clock{font-size:clamp(2rem,4vw,3rem);line-height:1;font-weight:200;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .clock .s{color:var(--tx2);font-weight:200}
 
-.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:1.25rem}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);grid-auto-flow:dense;gap:1.25rem}
 .card{position:relative;background:var(--glass);-webkit-backdrop-filter:blur(40px) saturate(180%);backdrop-filter:blur(40px) saturate(180%);
   border-radius:26px;padding:1.6rem;box-shadow:var(--sh),inset 0 1px 0 var(--edge)}
 .wide{grid-column:1/-1}
@@ -68,7 +68,7 @@ h1{flex:1;min-width:0;font-size:clamp(1.9rem,4.6vw,3.1rem);line-height:1.05;lett
 .sum{font-size:.95rem;color:var(--tx2);line-height:1.45}
 
 /* Frase */
-.q{display:flex;flex-direction:column;justify-content:center;min-height:calc(100% - 2rem)}
+.q{display:flex;flex-direction:column;justify-content:center;flex:1;min-height:0}
 .q p{font-size:clamp(1.4rem,2.8vw,2.1rem);line-height:1.22;letter-spacing:-.022em;font-weight:600}
 .q small{display:block;margin-top:1rem;color:var(--tx2);font-size:.95rem;font-weight:500}
 
@@ -158,19 +158,26 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
   .card{padding:1.1rem;border-radius:20px}.grid{gap:.75rem}
   .bar{padding:.35rem clamp(1rem,3vw,2.5rem)}
 }
-@media (min-width:1500px) and (orientation:landscape){main{max-width:1320px}}
+
 
 /* Card con sito a scelta */
 .acts{display:flex;gap:.5rem}
 .acts button{border:0;background:var(--seg);color:var(--tx);font:inherit;font-size:.8rem;font-weight:500;padding:.25rem .7rem;border-radius:9px;cursor:pointer}
 .acts button:active{opacity:.6}
-.frame{display:block;width:100%;height:clamp(300px,46vh,520px);border:0;border-radius:14px;background:#fff}
+.frame{display:block;width:100%;flex:1 1 clamp(300px,46vh,520px);min-height:200px;border:0;border-radius:14px;background:#fff}
 .fnote{margin-top:.6rem;font-size:.75rem;color:var(--tx2)}
 .addr{display:flex;gap:.6rem}
 .addr input{flex:1;min-width:0;border:0;background:var(--seg);color:var(--tx);font:inherit;padding:.7rem .9rem;border-radius:12px;outline:0}
 .addr input.bad{box-shadow:0 0 0 2px #ff3b30}
 .addr button{border:0;background:var(--ac);color:#fff;font:inherit;font-weight:600;padding:.7rem 1.1rem;border-radius:12px;cursor:pointer}
 .addr button:active{opacity:.7}
+
+/* Modalità riordino: le card si sollevano e si scambiano di posto */
+.srch.pl{padding:.3rem .8rem}
+.edit .grid>*{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:var(--sh),inset 0 1px 0 var(--edge),0 0 0 2px var(--ac)}
+.edit .grid>*>*{pointer-events:none}
+.grid>.drag{z-index:30;cursor:grabbing;transition:none!important;box-shadow:0 28px 70px rgba(0,0,0,.35),inset 0 1px 0 var(--edge),0 0 0 2px var(--ac)}
+.grid>.rel{z-index:30}
 
 /* Materializzazione: scala + opacità, a molla smorzata */
 .m{animation:mat .7s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--i)*70ms)}
@@ -181,6 +188,38 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
 @media(prefers-reduced-transparency:reduce){.card,.bar{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--bg)}.bar::after{display:none}.card{box-shadow:var(--sh),inset 0 0 0 1px var(--line)}}
 @media(prefers-contrast:more){:root{--tx2:#3a3a3c}:root[data-theme=dark]{--tx2:#d1d1d6}.card{box-shadow:var(--sh),inset 0 0 0 1px var(--tx2)}}
 @media (min-width:800px){.grid>.c5{grid-column:span 5}.grid>.c7{grid-column:span 7}.grid>.c6{grid-column:span 6}}
+[data-card=frase],.site{display:flex;flex-direction:column}
+.edit .grid>*::after{content:"";position:absolute;right:.5rem;bottom:.5rem;width:1.1rem;height:1.1rem;pointer-events:none;
+  background:linear-gradient(135deg,transparent 0 50%,var(--ac) 50% 58%,transparent 58% 72%,var(--ac) 72% 80%,transparent 80%)}
+@media (max-width:799px){.edit .grid>*::after{display:none}}
+@media (min-width:800px){
+  .grid>[data-w]{grid-column:span var(--span)}
+  .grid>[data-h]{height:var(--h);overflow:auto;scrollbar-width:thin}
+}
+/* Canvas libero a 24 colonne: le card si posizionano su tutta la larghezza */
+.canvas{position:relative}
+.cc{position:absolute;left:calc(var(--x)/24*100%);top:calc(var(--y)*20px);width:calc(var(--w)/24*100% - 12px);height:calc(var(--h)*20px - 12px);margin:6px;overflow:hidden}
+.cc>.cb{height:100%;overflow:auto;scrollbar-width:thin;display:flex;flex-direction:column}
+.cc .frame{flex:1 1 0;min-height:0}
+.cc[data-tipo=meteo]{padding:1.15rem 1.4rem}
+.ghost{position:absolute;left:calc(var(--x)/24*100%);top:calc(var(--y)*20px);width:calc(var(--w)/24*100% - 12px);height:calc(var(--h)*20px - 12px);margin:6px;
+  border:2px dashed var(--ac);border-radius:26px;background:rgba(0,113,227,.08);pointer-events:none;z-index:1}
+.rm{display:none;position:absolute;top:.55rem;right:.55rem;z-index:2;width:1.5rem;height:1.5rem;padding:0;border:0;border-radius:50%;background:#ff3b30;color:#fff;font:inherit;font-size:1rem;line-height:1;cursor:pointer}
+.rm:active{transform:scale(.9)}
+.edit .rm{display:block}
+.edit .cc{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:var(--sh),inset 0 1px 0 var(--edge),0 0 0 2px var(--ac)}
+.edit .cc>.cb{pointer-events:none}
+.cc.drag{z-index:9999!important;cursor:grabbing;transition:none!important;box-shadow:0 28px 70px rgba(0,0,0,.35),inset 0 1px 0 var(--edge),0 0 0 2px var(--ac)}
+.edit .cc::after{content:"";position:absolute;right:.5rem;bottom:.5rem;width:1.1rem;height:1.1rem;pointer-events:none;
+  background:linear-gradient(135deg,transparent 0 50%,var(--ac) 50% 58%,transparent 58% 72%,var(--ac) 72% 80%,transparent 80%)}
+@media (max-width:799px){
+  .canvas{display:flex;flex-direction:column;height:auto!important}
+  .cc{position:relative;left:auto;top:auto;width:auto;height:auto;margin:0 0 1rem;overflow:visible}
+  .cc>.cb{height:auto;overflow:visible}
+  .cc .frame{flex:none;height:clamp(300px,50vh,520px)}
+  .edit .cc::after,.rm{display:none!important}
+  .ghost{display:none}
+}
 </style>
 </head>
 <body>
@@ -188,6 +227,7 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
   <div class="brand">Life Commander</div>
   <div class="rt">
     <a class="srch cl" href="index.html" title="Torna al launcher classico"><span>Launcher classico</span></a>
+    <button class="srch pl" id="edit">Modifica</button><button class="srch pl" id="add" hidden>Aggiungi</button><button class="srch pl" id="reset" hidden>Ripristina</button>
     <button class="srch" id="openpal" aria-label="Cerca moduli"><span>Cerca</span><kbd id="kbd">⌘K</kbd></button>
     <div class="seg" id="seg" data-t="light" role="group" aria-label="Tema">
       <i></i><button data-v="light" aria-pressed="true">Chiaro</button><button data-v="dark" aria-pressed="false">Scuro</button>
@@ -201,13 +241,7 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
     <div class="when"><div class="clock" id="clock">--:--</div><div class="date" id="date"></div></div>
   </div>
 
-  <div class="grid">
-    <section class="card m c5 go" style="--i:1" id="meteo" data-href="moduli/meteo-posizione.html"><div class="err">Carico il meteo…</div></section>
-    <section class="card m c7" style="--i:2"><div class="lbl">Frase del giorno</div><div class="q" id="quote"></div></section>
-    <section class="card wide m go" id="livecard" hidden style="--i:3" data-href="moduli/risultati-sportivi.html"><div class="lh"><div class="lbl">Partite live</div><a href="moduli/risultati-sportivi.html">Tutti i risultati ›</a></div><div class="live" id="live"></div></section>
-    <section class="card m c6 site" style="--i:4" data-k="sito1"></section>
-    <section class="card m c6 site" style="--i:5" data-k="sito2"></section>
-  </div>
+  <div class="canvas" id="canvas"></div>
 
   <div class="lbl m" style="--i:6;margin:2.25rem 0 1rem">I tuoi moduli</div>
   <div class="mods m" id="mods" style="--i:7"></div>
@@ -267,10 +301,11 @@ const FRASI = [
  ["L'acqua scava la roccia non con la forza, ma cadendo spesso.","Ovidio"],
  ["Comincia a fare ciò che è necessario, poi ciò che è possibile, e all'improvviso farai l'impossibile.","attribuita a Francesco d'Assisi"]
 ];
-(function(){
+function fraseOggi(){
+  const el = document.getElementById('quote'); if(!el) return;
   const n = new Date(), g = Math.floor((n - new Date(n.getFullYear(),0,0))/864e5), f = FRASI[g % FRASI.length];
-  document.getElementById('quote').innerHTML = '<p>“'+f[0]+'”</p><small>'+f[1]+'</small>';
-})();
+  el.innerHTML = '<p>“'+f[0]+'”</p><small>'+f[1]+'</small>';
+}
 
 /* ---------- Meteo (Open-Meteo, Correggio) ---------- */
 const WMO = {0:'Sereno',1:'Prevalentemente sereno',2:'Parzialmente nuvoloso',3:'Nuvoloso',45:'Nebbia',48:'Nebbia con brina',51:'Pioggerella',53:'Pioggerella',55:'Pioggerella intensa',56:'Pioggia gelata',57:'Pioggia gelata',61:'Pioggia debole',63:'Pioggia',65:'Pioggia forte',66:'Pioggia gelata',67:'Pioggia gelata',71:'Neve debole',73:'Neve',75:'Neve forte',77:'Nevischio',80:'Rovesci',81:'Rovesci',82:'Rovesci violenti',85:'Rovesci di neve',86:'Rovesci di neve',95:'Temporale',96:'Temporale con grandine',99:'Temporale con grandine'};
@@ -288,7 +323,7 @@ function icona(c){
   return '<svg class="ico" viewBox="0 0 64 64" aria-hidden="true">'+s+'</svg>';
 }
 async function meteo(){
-  const el = document.getElementById('meteo');
+  const el = document.getElementById('meteo'); if(!el) return;
   try{
     const u = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,weather_code&hourly=temperature_2m&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome&forecast_days=1`;
     const d = await (await fetch(u)).json(), c = d.current, r = Math.round;
@@ -307,58 +342,21 @@ meteo(); setInterval(meteo, 20*60*1000);
 
 const esc = s => s.replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
-/* ---------- Due card con un sito a scelta (l'indirizzo si salva nel browser) ---------- */
 function normUrl(v){
   v = v.trim(); if(!v) return null;
   if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(v)) v = 'https://' + v;
   try{
     const u = new URL(v);
     if(!/^https?:$/.test(u.protocol)) return null;
-    if(location.protocol==='https:' && u.protocol==='http:') u.protocol = 'https:';   /* le pagine http non si possono incorporare in una https */
+    if(location.protocol==='https:' && u.protocol==='http:') u.protocol = 'https:';
     return u.href;
   }catch(e){ return null; }
 }
-document.querySelectorAll('.site').forEach(card => {
-  const k = card.dataset.k; let url = null;
-  try{ url = localStorage.getItem(k); }catch(e){}
-  if(url && !normUrl(url)) url = null;
-  function mostra(){
-    if(url){
-      const host = new URL(url).hostname.replace(/^www\./,'');
-      card.innerHTML = `<div class="lh"><div class="lbl">${esc(host)}</div><div class="acts"><button data-a="o">Apri ↗</button><button data-a="c">Cambia</button></div></div>
-        <iframe class="frame" src="${esc(url)}" title="${esc(host)}" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
-        <div class="fnote">Se il sito non si vede, non permette di essere incorporato: usa “Apri”.</div>`;
-    } else {
-      card.innerHTML = `<div class="lbl">Sito a scelta</div>
-        <form class="addr"><input type="text" inputmode="url" placeholder="Indirizzo del sito, es. ansa.it" autocomplete="off" spellcheck="false" aria-label="Indirizzo del sito"><button>Carica</button></form>`;
-    }
-  }
-  card.addEventListener('click', e => {
-    const b = e.target.closest('button[data-a]'); if(!b) return;
-    if(b.dataset.a==='o') window.open(url,'_blank','noopener');
-    else { const old = url; url = null; mostra(); const i = card.querySelector('input'); i.value = old || ''; i.focus(); i.select(); }
-  });
-  card.addEventListener('submit', e => {
-    e.preventDefault();
-    const i = card.querySelector('input'), u = normUrl(i.value);
-    if(!u){ i.classList.add('bad'); return; }
-    url = u; try{ localStorage.setItem(k,u); }catch(err){}
-    mostra();
-  });
-  mostra();
-});
-
-/* ---------- Clic su una card: apre il modulo corrispondente (i link interni restano link) ---------- */
-document.querySelectorAll('.go').forEach(c => {
-  c.setAttribute('tabindex','0'); c.setAttribute('role','link');
-  c.addEventListener('click', e => { if(!e.target.closest('a')) location.href = c.dataset.href; });
-  c.addEventListener('keydown', e => { if(e.key==='Enter' && e.target===c) location.href = c.dataset.href; });
-});
 
 /* ---------- Partite live (Serie A, Champions League, NFL) ---------- */
 const LEGHE = [['Serie A','soccer/ita.1'],['Champions League','soccer/uefa.champions'],['NFL','football/nfl']];
 async function live(){
-  const card = document.getElementById('livecard'), el = document.getElementById('live');
+  const card = document.getElementById('livecard'), el = document.getElementById('live'); if(!card || !el) return;
   const res = await Promise.allSettled(LEGHE.map(async ([nome,path]) => {
     const j = await (await fetch('https://site.api.espn.com/apis/site/v2/sports/'+path+'/scoreboard')).json();
     return (j.events||[]).map(ev => {
@@ -401,13 +399,14 @@ function disegna(){
     : '<li style="cursor:default"><span class="err">Nessun risultato</span></li>';
   const on = pl.querySelector('.on'); if(on) on.scrollIntoView({block:'nearest'});
 }
+let fonte = () => [...MODULI,...AZIONI]; const FONTE0 = fonte;
 function filtra(){
   const w = norm(pin.value.trim()).split(/\s+/).filter(Boolean);
-  vis = [...MODULI,...AZIONI].filter(m => { const t = norm(m.n+' '+m.d+' '+m.k); return w.every(x => t.includes(x)); });
+  vis = fonte().filter(m => { const t = norm(m.n+' '+m.d+' '+m.k); return w.every(x => t.includes(x)); });
   sel = 0; disegna();
 }
 function apri(){ pal.classList.add('open'); pin.value=''; filtra(); pin.focus(); }
-function chiudi(){ pal.classList.remove('open'); pin.blur(); }
+function chiudi(){ pal.classList.remove('open'); pin.blur(); fonte = FONTE0; pin.placeholder = 'Cerca un modulo o un comando…'; }
 function esegui(m){ if(m.fn){ m.fn(); chiudi(); } else location.href = m.h; }
 
 document.addEventListener('keydown', e => {
@@ -423,6 +422,183 @@ pin.addEventListener('input', filtra);
 pal.addEventListener('pointerdown', e => { if(e.target===pal) chiudi(); });
 pl.addEventListener('click', e => { const li = e.target.closest('li[data-i]'); if(li) esegui(vis[+li.dataset.i]); });
 document.getElementById('openpal').addEventListener('pointerdown', e => { e.preventDefault(); apri(); });
+
+/* ---------- Canvas libero: modalità "Modifica" per spostare, ridimensionare, aggiungere e rimuovere le card ---------- */
+const COL = 24, RIGA = 20;
+const TIPI = {
+  meteo:{n:'Meteo',d:'Condizioni attuali a Correggio',e:'🌤️',c:'linear-gradient(135deg,#4facfe,#0a84ff)',href:'moduli/meteo-posizione.html',w:9,h:13},
+  frase:{n:'Frase del giorno',d:'Una citazione al giorno',e:'💬',c:'linear-gradient(135deg,#bf5af2,#af52de)',w:9,h:13},
+  live:{n:'Partite live',d:'Serie A, Champions League, NFL',e:'⚽',c:'linear-gradient(135deg,#30d158,#248a3d)',href:'moduli/risultati-sportivi.html',w:6,h:13},
+  sito:{n:'Sito web',d:'Incorpora un sito a tua scelta',e:'🌐',c:'linear-gradient(135deg,#8e8e93,#636366)',w:12,h:24}
+};
+const base = () => [
+  {id:'meteo',tipo:'meteo',x:0,y:0,w:9,h:13},{id:'frase',tipo:'frase',x:9,y:0,w:9,h:13},{id:'live',tipo:'live',x:18,y:0,w:6,h:13},
+  {id:'s1',tipo:'sito',x:0,y:13,w:12,h:24,url:''},{id:'s2',tipo:'sito',x:12,y:13,w:12,h:24,url:''}];
+let carte = null;
+try{ carte = JSON.parse(localStorage.getItem('carte2') || 'null'); }catch(e){}
+if(!Array.isArray(carte)) carte = base();
+const salvaCarte = () => { try{ localStorage.setItem('carte2', JSON.stringify(carte)); }catch(e){} };
+const cv = document.getElementById('canvas'), els = new Map();
+const inEdit = () => document.body.classList.contains('edit');
+const largo = () => matchMedia('(min-width:800px)').matches;
+let zTop = 10;
+
+function sito(c, cb){
+  let modifica = false;
+  function mostra(){
+    if(c.url && !modifica){
+      let host; try{ host = c.label || new URL(c.url, location.href).hostname.replace(/^www\./,''); }catch(e){ host = c.url; }
+      cb.innerHTML = `<div class="lh"><div class="lbl">${esc(host)}</div><div class="acts"><button data-a="o">Apri ↗</button><button data-a="c">Cambia</button></div></div>
+        <iframe class="frame" src="${esc(c.url)}" title="${esc(host)}" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>`
+        + (c.label ? '' : '<div class="fnote">Se il sito non si vede, non permette di essere incorporato: usa “Apri”.</div>');
+    } else {
+      cb.innerHTML = `<div class="lbl">Sito a scelta</div><form class="addr"><input type="text" inputmode="url" placeholder="Indirizzo del sito, es. ansa.it" autocomplete="off" spellcheck="false" aria-label="Indirizzo del sito"><button>Carica</button></form>`;
+      const i = cb.querySelector('input'); i.value = c.url || '';
+      if(modifica){ i.focus(); i.select(); }
+    }
+  }
+  cb.addEventListener('click', e => {
+    const b = e.target.closest('button[data-a]'); if(!b) return;
+    if(b.dataset.a==='o') window.open(new URL(c.url, location.href).href, '_blank', 'noopener');
+    else { modifica = true; mostra(); }
+  });
+  cb.addEventListener('submit', e => {
+    e.preventDefault();
+    const i = cb.querySelector('input'), u = normUrl(i.value);
+    if(!u){ i.classList.add('bad'); return; }
+    c.url = u; delete c.label; modifica = false; salvaCarte(); mostra();
+  });
+  cb.addEventListener('keydown', e => { if(e.key==='Escape' && modifica && c.url){ modifica = false; mostra(); } });
+  mostra();
+}
+function riempi(c, el){
+  const cb = el.querySelector('.cb');
+  if(c.tipo==='meteo'){ cb.innerHTML = '<div id="meteo"><div class="err">Carico il meteo…</div></div>'; meteo(); }
+  else if(c.tipo==='frase'){ cb.innerHTML = '<div class="lbl">Frase del giorno</div><div class="q" id="quote"></div>'; fraseOggi(); }
+  else if(c.tipo==='live'){ el.id = 'livecard'; el.hidden = true; cb.innerHTML = '<div class="lh"><div class="lbl">Partite live</div><a href="moduli/risultati-sportivi.html">Tutti i risultati ›</a></div><div class="live" id="live"></div>'; live(); }
+  else sito(c, cb);
+}
+function crea(c){
+  const el = document.createElement('section');
+  el.className = 'card cc'; el.dataset.id = c.id; el.dataset.tipo = c.tipo;
+  el.innerHTML = '<button class="rm" aria-label="Rimuovi card" title="Rimuovi">×</button><div class="cb"></div>';
+  const t = TIPI[c.tipo];
+  if(t.href){ el.dataset.href = t.href; el.classList.add('go'); }
+  if(t.href || inEdit()) el.setAttribute('tabindex','0');
+  cv.appendChild(el); els.set(c.id, el);
+  riempi(c, el);
+}
+function sync(){
+  carte.forEach(c => { if(!els.has(c.id)) crea(c); });
+  els.forEach((el,id) => { if(!carte.some(c => c.id===id)){ el.remove(); els.delete(id); } });
+  carte.forEach(c => { const el = els.get(c.id); ['x','y','w','h'].forEach(k => el.style.setProperty('--'+k, c[k])); });
+  [...carte].sort((a,b) => a.y-b.y || a.x-b.x).forEach((c,i) => { els.get(c.id).style.order = i; });
+  const fondo = Math.max(0, ...carte.map(c => c.y + c.h));
+  cv.style.height = ((fondo + (inEdit() ? 14 : 0)) * RIGA) + 'px';
+}
+function aggiungi(o){
+  const t = TIPI[o.tipo], fondo = Math.max(0, ...carte.map(c => c.y + c.h));
+  const c = Object.assign({id:o.tipo + Date.now().toString(36), x:0, y:fondo, w:t.w, h:t.h}, o);
+  carte.push(c); salvaCarte(); sync();
+  const el = els.get(c.id); el.style.zIndex = ++zTop; el.scrollIntoView({behavior:'smooth', block:'center'});
+}
+function vociAggiungi(){
+  const v = [{n:'Sito web',d:'Incorpora un sito a tua scelta',e:'🌐',c:TIPI.sito.c,k:'sito web link pagina url',fn:() => aggiungi({tipo:'sito', url:''})}];
+  ['meteo','frase','live'].forEach(t => { if(!carte.some(c => c.tipo===t)) v.push({n:TIPI[t].n, d:TIPI[t].d, e:TIPI[t].e, c:TIPI[t].c, k:t, fn:() => aggiungi({tipo:t})}); });
+  MODULI.forEach(m => v.push({n:m.n, d:'Modulo · '+m.d, e:m.e, c:m.c, k:m.k+' modulo', fn:() => aggiungi({tipo:'sito', url:m.h, label:m.n})}));
+  return v;
+}
+const bEdit = document.getElementById('edit'), bAdd = document.getElementById('add'), bReset = document.getElementById('reset');
+bEdit.addEventListener('click', () => {
+  const on = document.body.classList.toggle('edit');
+  bEdit.textContent = on ? 'Fine' : 'Modifica'; bAdd.hidden = bReset.hidden = !on;
+  els.forEach(el => { el.style.cursor = ''; if(on) el.setAttribute('tabindex','0'); else if(!el.dataset.href) el.removeAttribute('tabindex'); });
+  sync();
+});
+bAdd.addEventListener('click', () => { fonte = vociAggiungi; pin.placeholder = 'Aggiungi una card…'; apri(); });
+bReset.addEventListener('click', () => {
+  if(!confirm('Ripristinare la disposizione iniziale? I siti aggiunti verranno rimossi.')) return;
+  carte = base(); els.forEach(el => el.remove()); els.clear(); salvaCarte(); sync();
+});
+AZIONI.push({n:'Modifica la pagina',d:'Sposta, ridimensiona, aggiungi o rimuovi card',e:'✎',c:'#8e8e93',k:'modifica riordina layout card aggiungi rimuovi',fn:() => bEdit.click()});
+
+/* trascinamento e ridimensionamento: la card segue il dito 1:1, la posizione finale scatta sulla griglia (segnata da un riquadro tratteggiato) */
+const ghost = document.createElement('div'); ghost.className = 'ghost'; ghost.hidden = true; cv.appendChild(ghost);
+const unita = () => cv.getBoundingClientRect().width / COL;
+const inAngolo = (el,e) => { const r = el.getBoundingClientRect(); return e.clientX > r.right-30 && e.clientY > r.bottom-30; };
+let drag = null;
+cv.addEventListener('pointerdown', e => {
+  if(!inEdit() || !largo() || e.button || e.target.closest('.rm')) return;
+  const el = e.target.closest('.cc'); if(!el) return;
+  e.preventDefault(); el.setPointerCapture(e.pointerId); el.style.zIndex = ++zTop;
+  const c = carte.find(k => k.id===el.dataset.id);
+  drag = {c, el, u:unita(), sx:e.clientX, sy:e.clientY, resize:inAngolo(el,e), mosso:false, x0:c.x, y0:c.y, w0:c.w, h0:c.h, dx:0, dy:0};
+  if(!drag.resize) el.classList.add('drag');
+});
+cv.addEventListener('pointermove', e => {
+  if(!drag){
+    if(inEdit()){ const el = e.target.closest && e.target.closest('.cc'); if(el) el.style.cursor = (largo() && inAngolo(el,e)) ? 'nwse-resize' : ''; }
+    return;
+  }
+  const {c, el, u} = drag, dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+  if(!drag.mosso){ if(Math.hypot(dx,dy) < 4) return; drag.mosso = true; }
+  if(drag.resize){
+    c.w = Math.max(3, Math.min(COL - c.x, Math.round(drag.w0 + dx/u)));
+    c.h = Math.max(6, Math.round(drag.h0 + dy/RIGA));
+    sync();
+  } else {
+    drag.dx = dx; drag.dy = dy;
+    el.style.transform = `translate(${dx}px,${dy}px) scale(1.02)`;
+    drag.nx = Math.max(0, Math.min(COL - c.w, Math.round(drag.x0 + dx/u)));
+    drag.ny = Math.max(0, Math.round(drag.y0 + dy/RIGA));
+    ghost.hidden = false;
+    ghost.style.setProperty('--x', drag.nx); ghost.style.setProperty('--y', drag.ny); ghost.style.setProperty('--w', c.w); ghost.style.setProperty('--h', c.h);
+  }
+});
+function rilascia(){
+  if(!drag) return;
+  const {c, el} = drag, d = drag; drag = null;
+  ghost.hidden = true; el.classList.remove('drag');
+  if(!d.mosso) return;
+  if(!d.resize){
+    c.x = d.nx; c.y = d.ny; sync();
+    /* la card parte da dove l'hai lasciata e si assesta sulla griglia */
+    el.style.transition = 'none';
+    el.style.transform = `translate(${d.dx-(d.nx-d.x0)*d.u}px,${d.dy-(d.ny-d.y0)*RIGA}px) scale(1.02)`;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.transition = 'transform .45s cubic-bezier(.16,1,.3,1)'; el.style.transform = '';
+      setTimeout(() => { el.style.transition = ''; }, 480);
+    }));
+  }
+  salvaCarte();
+}
+cv.addEventListener('pointerup', rilascia);
+cv.addEventListener('pointercancel', rilascia);
+
+/* clic su una card: rimuove (×) oppure apre il modulo corrispondente */
+cv.addEventListener('click', e => {
+  const rm = e.target.closest('.rm');
+  if(rm){
+    const c = carte.find(k => k.id === rm.closest('.cc').dataset.id);
+    if(c.tipo==='sito' && c.url && !confirm('Rimuovere questo sito dalla pagina?')) return;
+    carte = carte.filter(k => k !== c); salvaCarte(); sync(); return;
+  }
+  if(inEdit()) return;
+  const el = e.target.closest('.cc[data-href]');
+  if(el && !e.target.closest('a,button,input,form,iframe')) location.href = el.dataset.href;
+});
+/* tastiera: frecce spostano la card selezionata, Maiusc+frecce la ridimensionano */
+cv.addEventListener('keydown', e => {
+  const el = e.target.closest && e.target.closest('.cc'); if(!el || e.target !== el) return;
+  const c = carte.find(k => k.id === el.dataset.id);
+  if(!inEdit()){ if(e.key==='Enter' && el.dataset.href) location.href = el.dataset.href; return; }
+  const d = {ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1]}[e.key]; if(!d) return;
+  e.preventDefault();
+  if(e.shiftKey){ c.w = Math.max(3, Math.min(COL - c.x, c.w + d[0])); c.h = Math.max(6, c.h + d[1]); }
+  else { c.x = Math.max(0, Math.min(COL - c.w, c.x + d[0])); c.y = Math.max(0, c.y + d[1]); }
+  salvaCarte(); sync();
+});
+sync();
 </script>
 </body>
 </html>
