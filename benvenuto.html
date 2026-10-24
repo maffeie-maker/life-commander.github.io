@@ -220,6 +220,7 @@ a.srch{text-decoration:none;padding:.3rem .8rem}
   .edit .cc::after,.rm{display:none!important}
   .ghost{display:none}
 }
+.agg{font-size:.75rem;color:var(--tx2);align-self:center;margin-right:.2rem;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -448,9 +449,13 @@ function sito(c, cb){
   function mostra(){
     if(c.url && !modifica){
       let host; try{ host = c.label || new URL(c.url, location.href).hostname.replace(/^www\./,''); }catch(e){ host = c.url; }
-      cb.innerHTML = `<div class="lh"><div class="lbl">${esc(host)}</div><div class="acts"><button data-a="o">Apri ↗</button><button data-a="c">Cambia</button></div></div>
+      cb.innerHTML = `<div class="lh"><div class="lbl">${esc(host)}</div><div class="acts"><span class="agg"></span><button data-a="o">Apri ↗</button><button data-a="c">Cambia</button></div></div>
         <iframe class="frame" src="${esc(c.url)}" title="${esc(host)}" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>`
         + (c.label ? '' : '<div class="fnote">Se il sito non si vede, non permette di essere incorporato: usa “Apri”.</div>');
+      cb.querySelector('iframe').addEventListener('load', () => {
+        const a = cb.querySelector('.agg');
+        if(a) a.textContent = 'Agg. ' + new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+      });
     } else {
       cb.innerHTML = `<div class="lbl">Sito a scelta</div><form class="addr"><input type="text" inputmode="url" placeholder="Indirizzo del sito, es. ansa.it" autocomplete="off" spellcheck="false" aria-label="Indirizzo del sito"><button>Carica</button></form>`;
       const i = cb.querySelector('input'); i.value = c.url || '';
@@ -599,6 +604,21 @@ cv.addEventListener('keydown', e => {
   salvaCarte(); sync();
 });
 sync();
+
+/* i siti incorporati si ricaricano ogni 10 minuti (non in modifica, non a scheda nascosta; al ritorno sulla scheda si aggiornano se sono scaduti) */
+const SITI_MIN = 10;
+let ultimoAgg = Date.now();
+function aggiornaSiti(){
+  if(inEdit() || document.hidden) return;
+  ultimoAgg = Date.now();
+  document.querySelectorAll('.cc[data-tipo=sito] iframe').forEach(f => {
+    const u = f.getAttribute('src'); if(!u) return;
+    const abs = new URL(u, location.href).href;
+    try{ f.contentWindow.location.replace(abs); }catch(e){ f.src = abs; }
+  });
+}
+setInterval(aggiornaSiti, SITI_MIN*60*1000);
+document.addEventListener('visibilitychange', () => { if(!document.hidden && Date.now() - ultimoAgg > SITI_MIN*60*1000) aggiornaSiti(); });
 </script>
 </body>
 </html>
