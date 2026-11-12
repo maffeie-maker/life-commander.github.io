@@ -194,15 +194,15 @@
 <script src="https://cloudflare.com"></script>
 <script>
     const stopsData = [
-        { name: "Correggio - Autostazione / Piazzale Finzi", desc: "Capolinea / Interscambio principale", lat: 44.7706, lng: 10.7797 },
-        { name: "Correggio - Porta Reggio", desc: "Fermata CORREG-P.TA RE (Viale Saltini)", lat: 44.7675, lng: 10.7768 },
-        { name: "Fosdondo - Centro", desc: "Località Fosdondo (SP468)", lat: 44.7641, lng: 10.7385 },
-        { name: "Canolo - Chiesa", desc: "Fermata CANOLO-CHIESA (Via Canolo)", lat: 44.7628, lng: 10.7102 },
-        { name: "Bagnolo in Piano - Bocciodromo", desc: "Fermata BAGNOLO-BOCCI (Via Olimpia)", lat: 44.7634, lng: 10.6789 },
-        { name: "Bagnolo in Piano - Centro / Piazza Garibaldi", desc: "Fermata centrale Bagnolo", lat: 44.7639, lng: 10.6738 }
+        { name: "Correggio - Autostazione / Piazzale Finzi", desc: "Capolinea / Interscambio principale", lat: Number("44.7706"), lng: Number("10.7797") },
+        { name: "Correggio - Porta Reggio", desc: "Fermata CORREG-P.TA RE (Viale Saltini)", lat: Number("44.7675"), lng: Number("10.7768") },
+        { name: "Fosdondo - Centro", desc: "Località Fosdondo (SP468)", lat: Number("44.7641"), lng: Number("10.7385") },
+        { name: "Canolo - Chiesa", desc: "Fermata CANOLO-CHIESA (Via Canolo)", lat: Number("44.7628"), lng: Number("10.7102") },
+        { name: "Bagnolo in Piano - Bocciodromo", desc: "Fermata BAGNOLO-BOCCI (Via Olimpia)", lat: Number("44.7634"), lng: Number("10.6789") },
+        { name: "Bagnolo in Piano - Centro / Piazza Garibaldi", desc: "Fermata centrale Bagnolo", lat: Number("44.7639"), lng: Number("10.6738") }
     ];
 
-    let currentDirection = 'andata';
+    let currentDirection = "andata";
     let map = null;
     let routeLayer = null;
     let markersLayer = null;
@@ -210,12 +210,12 @@
     let leafletMarkers = [];
 
     function renderStopsList() {
-        const orderedStops = currentDirection === 'andata' ? stopsData.slice() : stopsData.slice().reverse();
-        const listEl = document.getElementById('stops-list');
-        listEl.innerHTML = '';
+        const orderedStops = currentDirection === "andata" ? stopsData.slice() : stopsData.slice().reverse();
+        const listEl = document.getElementById("stops-list");
+        listEl.innerHTML = "";
 
         orderedStops.forEach((stop, index) => {
-            const li = document.createElement('li');
+            const li = document.createElement("li");
             li.innerHTML = `<div class="stop-name">${stop.name}</div><div class="stop-desc">${stop.desc}</div>`;
             li.onclick = () => {
                 if (map && leafletMarkers[index]) {
@@ -230,17 +230,18 @@
     function initMap() {
         renderStopsList();
 
-        if (typeof L === 'undefined') {
-            document.getElementById('map').innerHTML = 
-                '<div style="padding:20px;text-align:center;">⚠️ Impossibile caricare la libreria della mappa.<br>Verifica la connessione internet o apri il file con Chrome/Edge/Firefox.</div>';
+        if (typeof L === "undefined") {
+            document.getElementById("map").innerHTML = 
+                '<div style="padding:20px;text-align:center;">⚠️ Impossibile caricare la libreria della mappa.<br>Verifica la connessione internet.</div>';
             return;
         }
 
-        document.getElementById('map').innerHTML = '';
-        map = L.map('map').setView({ lat: 44.766, lng: 10.725 }, 13);
+        const mapDiv = document.getElementById("map");
+        mapDiv.innerHTML = "";
+        map = L.map("map").setView({ lat: Number("44.766"), lng: Number("10.725") }, 13);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors | Linea 82 SETA'
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "&copy; OpenStreetMap contributors | Linea 82 SETA"
         }).addTo(map);
 
         markersLayer = L.layerGroup().addTo(map);
@@ -251,8 +252,8 @@
 
     function setDirection(dir) {
         currentDirection = dir;
-        document.getElementById('btn-andata').classList.toggle('active', dir === 'andata');
-        document.getElementById('btn-ritorno').classList.toggle('active', dir === 'ritorno');
+        document.getElementById("btn-andata").classList.toggle("active", dir === "andata");
+        document.getElementById("btn-ritorno").classList.toggle("active", dir === "ritorno");
         renderStopsList();
         if (map) renderMapRoute();
     }
@@ -262,7 +263,7 @@
         leafletMarkers = [];
         if (routeLayer) map.removeLayer(routeLayer);
 
-        const orderedStops = currentDirection === 'andata' ? stopsData.slice() : stopsData.slice().reverse();
+        const orderedStops = currentDirection === "andata" ? stopsData.slice() : stopsData.slice().reverse();
         const latLngs = [];
 
         orderedStops.forEach((stop, index) => {
@@ -272,15 +273,10 @@
             const isTerminal = index === 0 || index === orderedStops.length - 1;
             const marker = L.circleMarker(point, {
                 radius: isTerminal ? 9 : 6,
-                fillColor: isTerminal ? '#d32f2f' : '#ffffff',
-                color: '#d32f2f',
+                fillColor: isTerminal ? "#d32f2f" : "#ffffff",
+                color: "#d32f2f",
                 weight: 3,
                 opacity: 1,
                 fillOpacity: 1
             }).bindPopup(`<strong>${index + 1}. ${stop.name}</strong><br><small>${stop.desc}</small>`);
 
-            markersLayer.addLayer(marker);
-            leafletMarkers.push(marker);
-        });
-
-        routeLayer = L.polyline(latLngs, {
