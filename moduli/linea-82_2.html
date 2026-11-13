@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Linea 82 · Correggio ⇄ Bagnolo</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+:root{--bg:#f5f5f7;--card:#fff;--tx:#1d1d1f;--mu:#6e6e73;--ac:#0071e3;--ok:#248a3d;--wa:#c93400;--ln:#d2d2d7;--sh:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.06)}
+[data-theme=dark]{--bg:#000;--card:#1c1c1e;--tx:#f5f5f7;--mu:#98989d;--ac:#2997ff;--ok:#30d158;--wa:#ff6a4d;--ln:#3a3a3c;--sh:none}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 -apple-system,"SF Pro Text",Inter,system-ui,sans-serif;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom)}
+.wrap{max-width:920px;margin:0 auto;padding:16px 0 40px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+header h1{font-size:1.35rem;font-weight:600;letter-spacing:-.02em;margin:0;flex:1}
+header small{color:var(--mu);font-size:.8rem;font-variant-numeric:tabular-nums}
+a{color:var(--ac);text-decoration:none}
+.btn{font:inherit;font-size:.85rem;background:var(--card);color:var(--tx);border:0;border-radius:980px;padding:7px 14px;box-shadow:var(--sh);cursor:pointer;transition:transform .1s}
+.btn:active{transform:scale(.96)}
+.seg{display:flex;gap:6px;background:var(--ln);padding:3px;border-radius:12px;margin-bottom:14px}
+.seg button{flex:1;font:inherit;font-size:.9rem;font-weight:500;border:0;border-radius:10px;padding:9px 6px;background:transparent;color:var(--mu);cursor:pointer;transition:transform .1s}
+.seg button:active{transform:scale(.97)}
+.seg button[aria-pressed=true]{background:var(--card);color:var(--tx);box-shadow:var(--sh)}
+.grid{display:grid;gap:14px}
+.card{background:var(--card);border-radius:20px;padding:18px 20px;box-shadow:var(--sh);animation:in .35s backwards}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+.lb{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);font-weight:600}
+.big{font-size:3.6rem;font-weight:100;letter-spacing:-.03em;line-height:1;margin:8px 0 2px;font-variant-numeric:tabular-nums}
+.sub{color:var(--mu);font-size:.9rem}
+.chip{display:inline-block;font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:980px;background:color-mix(in srgb,var(--c,var(--ok)) 14%,transparent);color:var(--c,var(--ok));white-space:nowrap}
+.chip.late{--c:var(--wa)}.chip.gr{--c:var(--mu)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--ln)}
+.row:first-of-type{border-top:0}
+.row .sub{font-size:.82rem}
+.msg{color:var(--mu);font-size:.92rem;padding:8px 0}
+#map{height:320px;border-radius:14px;margin-top:10px;background:var(--ln);z-index:0}
+.bmk span{display:flex;width:30px;height:30px;border-radius:50%;background:var(--c);color:#fff;font:600 10px/1 -apple-system,system-ui,sans-serif;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.bmk.on{--c:var(--ac)}.bmk.off{--c:#8e8e93}
+.bmk.lead span{width:38px;height:38px;margin:-4px;box-shadow:0 0 0 5px color-mix(in srgb,var(--c) 35%,transparent),0 1px 4px rgba(0,0,0,.35)}
+.stp{background:var(--card);color:var(--tx);border:0;box-shadow:var(--sh);font-size:11px;font-weight:600}
+.mh{display:flex;justify-content:space-between;align-items:center}
+@media(min-width:800px){.grid{grid-template-columns:1.1fr 1fr}.full{grid-column:1/-1}#map{height:420px}}
+@media(prefers-reduced-motion:reduce){.card{animation:none}.btn,.seg button{transition:none}}
+@media(prefers-contrast:more){.card{box-shadow:none;outline:1px solid var(--tx)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a href="../index.html" aria-label="Torna all’hub">‹ Hub</a>
+  <h1>Linea 82</h1>
+  <small id="clock"></small>
+  <button class="btn" id="theme">Scuro</button>
+</header>
+<div class="seg" role="group" aria-label="Direzione">
+  <button id="b-and" aria-pressed="true">Correggio → Bagnolo</button>
+  <button id="b-rit" aria-pressed="false">Bagnolo → Correggio</button>
+</div>
+<div class="grid">
+  <div class="card" id="hero"></div>
+  <div class="card" id="list"></div>
+  <div class="card full" id="mapc"><div class="mh"><span class="lb">Mappa · bus della linea 82</span><button class="btn" id="fit">Centra</button></div><div id="map"></div></div>
+</div>
+<p class="sub" id="foot"></p>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const BASE='https://proxy.busone.app/seta-re/gtfs-rt/';
+// Facoltativo: organizzazione/app e un contatto, come richiesto dalle condizioni di BusOne (es. 'Famiglia/Linea82; nome@esempio.it').
+const CLIENT='';
+const ROUTE='RE82',POS_EVERY=20000,TU_EVERY=60000;
+const SCHED={"tt":{"0":[["RE82-6212858","706_1020636",27960,29760],["RE82-6212852","706_1020636",43860,45060],["RE82-6212854","706_1020636",47400,48720],["RE82-6212838","706_1020618",47640,48840],["RE82-6212853","706_1020636",47640,48840],["RE82-6212819","706_1020618",49380,50640],["RE82-6308601","706_1020636",49380,50640],["RE82-6212820","706_1020636",51360,53160],["RE82-6308602","706_1020618",51360,53160],["RE82-6212822","706_1020592",67200,68460]],"1":[["RE82-6212827","706_1020604",23820,24900],["RE82-6212842","706_1020620",23820,24900],["RE82-6212865","706_1020638",23820,24900],["RE82-6212855","706_1020636",26580,28080],["RE82-6212840","706_1020618",26700,28080],["RE82-6212857","706_1020636",26700,28080],["RE82-6212813","706_1020592",28800,29880],["RE82-6212828","706_1020604",46200,47280],["RE82-6212843","706_1020620",46200,47280],["RE82-6212866","706_1020638",46200,47280],["RE82-6212816","706_1020592",64440,65460],["RE82-6212818","706_1020592",71400,72480]]},"cal":{"706_1020592":["20261103","20261104","20261105","20261106","20261107","20261109","20261110","20261111","20261112","20261113","20261114","20261116","20261117","20261118","20261119","20261120","20261121","20261123","20261124","20261125","20261126","20261127","20261128","20261130","20261201","20261202","20261203","20261204","20261205","20261207","20261209","20261210","20261211","20261212","20261214","20261215","20261216","20261217","20261218","20261219","20261221","20261222","20261223"],"706_1020604":["20261107","20261114","20261121","20261128","20261205","20261212","20261219"],"706_1020618":["20261207"],"706_1020620":["20261207"],"706_1020636":["20261103","20261104","20261105","20261106","20261107","20261109","20261110","20261111","20261112","20261113","20261114","20261116","20261117","20261118","20261119","20261120","20261121","20261123","20261124","20261125","20261126","20261127","20261128","20261130","20261201","20261202","20261203","20261204","20261205","20261209","20261210","20261211","20261212","20261214","20261215","20261216","20261217","20261218","20261219","20261221","20261222","20261223"],"706_1020638":["20261103","20261104","20261105","20261106","20261109","20261110","20261111","20261112","20261113","20261116","20261117","20261118","20261119","20261120","20261123","20261124","20261125","20261126","20261127","20261130","20261201","20261202","20261203","20261204","20261209","20261210","20261211","20261214","20261215","20261216","20261217","20261218","20261221","20261222","20261223"]}}; // orari statici della 82 per le sole fermate usate, da GTFS
+const ST={
+  and:{dir:'0',board:'RE382517',alight:'RE343507',from:'Correggio · Porta Reggio',to:'Bagnolo in Piano · centro',fromLL:[44.772605,10.777351],toLL:[44.761809,10.674989]},
+  rit:{dir:'1',board:'RE343007',alight:'RE382017',from:'Bagnolo in Piano · centro',to:'Correggio · Porta Reggio',fromLL:[44.76121,10.6754],toLL:[44.772247,10.777127]}
+};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ls={g:k=>{try{return localStorage.getItem(k)}catch(e){return null}},s:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+const hm=t=>new Date(t).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',hour12:false});
+let dir=ls.g('l82.dir')==='rit'?'rit':'and',veh=[],tu={},posAt=0,tuAt=0;
+
+function theme(t){document.documentElement.dataset.theme=t;$('#theme').textContent=t==='dark'?'Chiaro':'Scuro';ls.s('l82.theme',t);if(TL)TL.setUrl(tileUrl())}
+theme(ls.g('l82.theme')==='dark'?'dark':'light');
+$('#theme').onpointerdown=()=>theme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+function setDir(d){dir=d;ls.s('l82.dir',d);$('#b-and').setAttribute('aria-pressed',d==='and');$('#b-rit').setAttribute('aria-pressed',d==='rit');mapDir();render()}
+$('#b-and').onpointerdown=()=>setDir('and');$('#b-rit').onpointerdown=()=>setDir('rit');
+function clock(){const d=new Date();$('#clock').textContent=d.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+' · '+hm(d)}
+clock();setInterval(()=>{clock();render()},30000);
+
+async function getJSON(name){
+  const u=BASE+name+'.json';
+  if(CLIENT){try{const r=await fetch(u,{headers:{'X-BusOne-Client':CLIENT,'X-BusOne-Use':'personal'}});if(r.ok)return r.json()}catch(e){}}
+  const r=await fetch(u);if(!r.ok)throw 0;return r.json();
+}
+async function loadPos(){
+  try{const j=await getJSON('vehicle-positions');
+    veh=(j.entity||[]).map(e=>e.vehicle).filter(v=>v&&v.trip&&v.trip.route_id===ROUTE&&v.position)
+      .map(v=>({id:String(v.vehicle&&v.vehicle.id||v.trip.trip_id),trip:v.trip.trip_id,d:String(v.trip.direction_id),lat:v.position.latitude,lon:v.position.longitude}));
+    posAt=Date.now();
+  }catch(e){}
+  render();
+}
+async function loadTu(){
+  try{const j=await getJSON('trip-updates');const n={};
+    for(const e of j.entity||[]){const t=e.trip_update;if(t&&t.trip&&t.trip.route_id===ROUTE)n[t.trip.trip_id]=t.stop_time_update||[]}
+    tu=n;tuAt=Date.now();
+  }catch(e){}
+  render();
+}
+
+const ymd=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+// Corse utili per la tratta scelta: orario da GTFS, sostituito dalla previsione quando c’è.
+function entries(){
+  const c=ST[dir],now=Date.now(),out=[];
+  for(let k=0;k<3&&out.length<6;k++){
+    const day=new Date();day.setDate(day.getDate()+k);day.setHours(0,0,0,0);
+    const key=ymd(day),t0=day.getTime();
+    for(const [tid,sid,b,a] of SCHED.tt[c.dir]){
+      if(!(SCHED.cal[sid]||[]).includes(key))continue;
+      const e={tid,b:t0+b*1000,a:t0+a*1000,rt:false,delay:0};
+      if(k===0){const u=tu[tid]||[],ub=u.find(x=>x.stop_id===c.board),ua=u.find(x=>x.stop_id===c.alight);
+        const xb=ub&&(ub.departure&&ub.departure.time?ub.departure:ub.arrival);
+        if(xb&&xb.time){e.b=xb.time*1000;e.delay=xb.delay||0;e.rt=true}
+        if(ua&&ua.arrival&&ua.arrival.time){e.a=ua.arrival.time*1000;e.rt=true}}
+      if(e.a>=now-60000)out.push(e);
+    }
+  }
+  return out.sort((x,y)=>x.b-y.b);
+}
+function chip(e){
+  if(!e.rt)return '<span class="chip gr">da orario</span>';
+  const m=Math.round(e.delay/60);
+  return m>=1?`<span class="chip late">+${m} min</span>`:m<=-1?`<span class="chip">${-m} min in anticipo</span>`:'<span class="chip">in orario</span>';
+}
+const when=(t,now)=>{const m=Math.round((t-now)/60000),same=new Date(t).toDateString()===new Date(now).toDateString();
+  return !same?`domani ${hm(t)}`:m<=0?'ora':m<60?`tra ${m} min`:`tra ${Math.floor(m/60)} h ${m%60} min`};
+const vOf=e=>veh.find(v=>v.trip===e.tid);
+
+function render(){
+  const c=ST[dir],now=Date.now(),all=entries(),next=all.find(e=>e.b>=now-60000),rest=all.filter(e=>e!==next);
+  if(next){const v=vOf(next);
+    $('#hero').innerHTML=`<div class="lb">Prossimo bus da ${c.from}</div><div class="big">${when(next.b,now)}</div>`+
+      `<div class="sub">Parte alle ${hm(next.b)} · arriva a ${c.to} alle ${hm(next.a)}</div>`+
+      `<p style="margin:12px 0 8px">${chip(next)}</p>`+
+      `<div class="sub">${v?`Bus ${esc(v.id)} già in servizio su questa corsa`:'Nessun mezzo ancora assegnato a questa corsa'}</div>`;
+  }else $('#hero').innerHTML=`<div class="lb">Prossimo bus da ${c.from}</div><p class="msg">Nessuna corsa trovata nei prossimi giorni per questa tratta.</p>`;
+  const rows=rest.map(e=>{const gone=e.b<now-60000;
+    return `<div class="row"><div><b>${hm(e.b)}</b> <span class="sub">→ ${hm(e.a)}${gone?' · già partito':''}</span><div class="sub">${when(e.b,now)}${vOf(e)?` · bus ${esc(vOf(e).id)}`:''}</div></div>${chip(e)}</div>`}).join('');
+  $('#list').innerHTML=`<div class="lb">Corse successive</div>`+(rows||'<p class="msg">Nessun’altra corsa.</p>');
+  updateMap(next);
+  $('#foot').textContent=(posAt?`Posizioni alle ${hm(posAt)} · `:'Posizioni non disponibili · ')+(tuAt?`previsioni alle ${hm(tuAt)} · `:'previsioni non disponibili, uso gli orari · ')+'fonte BusOne, dati non ufficiali SETA';
+}
+
+// Mappa: i marker scorrono dalla posizione precedente alla nuova durante l’intervallo di aggiornamento.
+var TL=null;let M=null,SL=null,MK={},mapAt=0,animT=0,leadLL=null,fitKey='';
+function tileUrl(){return `https://{s}.basemaps.cartocdn.com/${document.documentElement.dataset.theme==='dark'?'dark_all':'light_all'}/{z}/{x}/{y}{r}.png`}
+function mapDir(){
+  if(!M)return;const c=ST[dir];leadLL=null;fitKey='';SL.clearLayers();
+  [[c.fromLL,c.from,8],[c.toLL,c.to,6]].forEach(([ll,n,r])=>L.circleMarker(ll,{radius:r,color:'#1d1d1f',weight:2,fillColor:'#fff',fillOpacity:1}).addTo(SL).bindTooltip(n,{permanent:true,direction:'top',offset:[0,-8],className:'stp'}));
+  fit();
+}
+function fit(){if(M){const c=ST[dir],pts=[c.fromLL,c.toLL];if(leadLL)pts.push(leadLL);M.fitBounds(pts,{padding:[50,50],maxZoom:14})}}
+function initMap(){
+  if(M||!window.L)return;
+  M=L.map('map',{scrollWheelZoom:false});
+  TL=L.tileLayer(tileUrl(),{subdomains:'abcd',maxZoom:19,attribution:'© OpenStreetMap contributors © CARTO'}).addTo(M);
+  SL=L.layerGroup().addTo(M);$('#fit').onpointerdown=fit;mapDir();
+}
+function updateMap(next){
+  initMap();
+  if(!M){$('#mapc').hidden=true;return}
+  const lv=next&&veh.find(v=>v.trip===next.tid);leadLL=lv?[lv.lat,lv.lon]:null;
+  const key=lv?dir+next.tid:'';if(key&&key!==fitKey){fitKey=key;fit()}
+  const ids=new Set(veh.map(v=>v.id));
+  for(const id in MK)if(!ids.has(id)){M.removeLayer(MK[id].m);delete MK[id]}
+  const fresh=mapAt!==posAt;mapAt=posAt;
+  const still=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches);
+  for(const v of veh){
+    let k=MK[v.id];
+    if(!k)k=MK[v.id]=({m:L.marker([v.lat,v.lon],{icon:L.divIcon({className:'bmk',html:'<span>82</span>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(M),from:[v.lat,v.lon],to:[v.lat,v.lon],t0:0});
+    const el=k.m.getElement();
+    if(el){const on=v.d===ST[dir].dir;el.classList.toggle('on',on);el.classList.toggle('off',!on);el.classList.toggle('lead',!!next&&next.tid===v.trip)}
+    const tip=`Bus ${v.id} · ${v.d==='0'?'verso Reggio':'verso Carpi'}`;
+    k.m.getTooltip()?k.m.setTooltipContent(tip):k.m.bindTooltip(tip);
+    if(fresh){const p=k.m.getLatLng();k.from=[p.lat,p.lng];k.to=[v.lat,v.lon];k.t0=performance.now();if(still||!k.seen){k.m.setLatLng(k.to);k.from=k.to}k.seen=1}
+  }
+  if(fresh&&!still){
+    cancelAnimationFrame(animT);
+    const step=t=>{let go=false;for(const id in MK){const k=MK[id],p=Math.min(1,(t-k.t0)/(POS_EVERY-2000));k.m.setLatLng([k.from[0]+(k.to[0]-k.from[0])*p,k.from[1]+(k.to[1]-k.from[1])*p]);if(p<1)go=true}if(go)animT=requestAnimationFrame(step)};
+    animT=requestAnimationFrame(step);
+  }
+}
+
+render();loadPos();loadTu();
+setInterval(()=>{if(!document.hidden)loadPos()},POS_EVERY);
+setInterval(()=>{if(!document.hidden)loadTu()},TU_EVERY);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadPos();loadTu()}});
+</script>
+</body>
+</html>
