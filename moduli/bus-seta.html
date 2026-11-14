@@ -50,6 +50,14 @@ header small{color:var(--mu);font-size:.78rem;font-variant-numeric:tabular-nums}
 .drow:active{transform:scale(.99)}
 .drow[aria-pressed=true]{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 8%,transparent)}
 .drow b{font-size:1.05rem;font-weight:600;letter-spacing:-.01em}
+.dblk{margin-top:8px}.dblk:first-child{margin-top:0}
+.drow{margin-top:0}
+.drow.cmp{padding:9px 14px}.drow.cmp b{font-size:.95rem}
+.its{display:flex;flex-wrap:wrap;gap:6px;margin:8px 2px 2px}
+.itc{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:.8rem;font-weight:500;padding:6px 11px;border-radius:980px;border:1.5px solid var(--ln);background:transparent;color:inherit;cursor:pointer}
+.itc i{width:8px;height:8px;border-radius:50%}
+.itc[aria-pressed=true]{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 10%,transparent)}
+.vt{display:inline-flex;align-items:center;gap:5px;font-weight:600;opacity:1}.vt i{width:8px;height:8px;border-radius:50%}
 .bmk span{display:flex;width:30px;height:30px;border-radius:50%;background:var(--c);color:#fff;font:600 10px/1 -apple-system,system-ui,sans-serif;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
 .bmk.on{--c:var(--ac)}.bmk.off{--c:#8e8e93}
 .stp{background:var(--card);color:var(--tx);border:0;box-shadow:var(--sh);font-size:11px;font-weight:600}
@@ -92,9 +100,9 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ls={g:k=>{try{return localStorage.getItem(k)}catch(e){return null}},s:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
 const hm=t=>new Date(t).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',hour12:false});
-const pretty=s=>String(s||'').toLowerCase().replace(/(^|[\s\-.'(\/])([a-zà-ù])/g,(m,a,b)=>a+b.toUpperCase()).replace(/\b(Fs|Cim\d*|Aci|Av|Asl|Re|Mo|Usl|Peep)\b/g,m=>m.toUpperCase()).replace(/\s+/g,' ').trim();
+const pretty=s=>String(s||'').toLowerCase().replace(/(^|[\s\-.'(\/])([a-zà-ù])/g,(m,a,b)=>a+b.toUpperCase()).replace(/\b(Fs|Cim\d*|Aci|Av|Asl|Re|Mo|Usl|Peep)\b/g,m=>m.toUpperCase()).replace(/(.)\b(In|Di|Del|Della|Dei|Da|Al|E)\b/g,(m,p,w)=>p+w.toLowerCase()).replace(/\s+/g,' ').trim();
 const info=id=>BS.lines.find(l=>l[0]===id);
-let ROUTE=ls.g('bs.line'),LN=null,dirSel=Number(ls.g('bs.dir'))===1?1:0,vehAll=[],tuAll={},posAt=0,tuAt=0,tripDir={},dirStops={0:new Set(),1:new Set()};
+let ROUTE=ls.g('bs.line'),LN=null,dirSel=Number(ls.g('bs.dir'))===1?1:0,vehAll=[],tuAll={},posAt=0,tuAt=0,tripDir={},tripVar={},itSel=null;
 if(!info(ROUTE))ROUTE=info('RE82')?'RE82':BS.lines[0][0];
 const veh=()=>vehAll.filter(v=>v.route===ROUTE),tu=()=>tuAll[ROUTE]||{};
 const dirOf=v=>v.d!=null?Number(v.d):(tripDir[v.trip]!=null?tripDir[v.trip]:-1);
@@ -135,7 +143,7 @@ async function loadTu(){
 // Orari: GTFS statico, sostituito dalla previsione quando c’è
 const ymd=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
 const calC={},calS=s=>calC[s]||(calC[s]=new Set(BS.cal[s]||[]));
-function departures(sid,n,d){
+function departures(sid,n,d,it){
   const now=Date.now(),out=[],T=tu();
   for(let k=-1;k<3;k++){
     const day=new Date();day.setDate(day.getDate()+k);day.setHours(0,0,0,0);
@@ -143,11 +151,11 @@ function departures(sid,n,d){
     for(const [tid,svc,start,vi] of LN.trips){
       if(!calS(svc).has(key))continue;
       const v=LN.vars[vi],i=v.s.indexOf(sid);
-      if(i<0||i===v.s.length-1||(d!=null&&v.d!==d))continue;
+      if(i<0||i===v.s.length-1||(d!=null&&v.d!==d)||(it!=null&&!v.i.includes(it)))continue;
       let t=t0+(start+v.o[i])*1000,rt=false,delay=0;
       if(k===0){const u=(T[tid]||[]).find(x=>x.stop_id===sid),x=u&&(u.departure&&u.departure.time?u.departure:u.arrival);
         if(x&&x.time){t=x.time*1000;delay=x.delay||0;rt=true}}
-      if(t>=now-60000)out.push({t,rt,delay,to:v.s[v.s.length-1]});
+      if(t>=now-60000)out.push({t,rt,delay,to:v.s[v.s.length-1],its:v.i});
     }
   }
   return out.sort((a,b)=>a.t-b.t).slice(0,n);
@@ -162,17 +170,31 @@ function renderLines(){
   const el=$('.ln[aria-pressed=true]');if(el&&el.scrollIntoView)el.scrollIntoView({inline:'center',block:'nearest'});
 }
 $('#lines').onclick=e=>{const b=e.target.closest('.ln');if(b&&b.dataset.id!==ROUTE)pick(b.dataset.id)};
-$('#dirs').onclick=e=>{const b=e.target.closest('.drow');if(b)setDir(Number(b.dataset.d))};
-function setDir(d){dirSel=d;ls.s('bs.dir',d);styleDir();render();fitLine()}
+$('#dirs').onclick=e=>{const c=e.target.closest('.itc');if(c)return setIt(c.dataset.k===''?null:Number(c.dataset.k));const b=e.target.closest('.drow');if(b)setDir(Number(b.dataset.d))};
+const PAL=['#0a84ff','#ff9f0a','#30b0c7','#bf5af2','#ff375f'];
+const ITS=()=>LN.its[dirSel]||[];
+const vis=()=>itSel==null?ITS().map((_,k)=>k):[itSel];
+const itLab=k=>ITS()[k].v?'via '+pretty(ITS()[k].v):'Percorso '+(k+1);
+const itCol=k=>ITS().length>1?PAL[k%PAL.length]:lineColor();
+const tripIts=t=>tripVar[t]==null?[]:LN.vars[tripVar[t]].i;
+const shown=()=>veh().filter(v=>dirOf(v)===dirSel&&(itSel==null||tripIts(v.trip).includes(itSel)));
+const tag=its=>its.length===1&&ITS().length>1?`<span class="vt"><i style="background:${PAL[its[0]%PAL.length]}"></i>${esc(itLab(its[0]))}</span> · `:'';
+function setDir(d){if(d===dirSel)return;dirSel=d;itSel=null;ls.s('bs.dir',d);drawLine();render();fitLine()}
+function setIt(k){itSel=k;drawLine();render();fitLine()}
 function render(){
   if(!LN)return;
-  const now=Date.now(),vs=veh(),L=info(ROUTE);
+  const now=Date.now(),L=info(ROUTE),ITSd=ITS();
   $('#dl').textContent=`Linea ${L[1]} · direzioni`;
-  $('#ds').textContent='verso '+pretty(LN.dirs[dirSel].to);
-  $('#dirs').innerHTML=Object.keys(LN.dirs).map(k=>{const d=+k,D=LN.dirs[d],dep=departures(D.fromId,1,d)[0],n=vs.filter(v=>dirOf(v)===d).length;
-    return `<button class="drow" data-d="${d}" aria-pressed="${d===dirSel}"><span class="lb">Verso</span><b>${esc(pretty(D.to))}</b><span class="sub">da ${esc(pretty(D.from))}</span>`+
-      `<span class="sub">${dep?`Prossima partenza ${hm(dep.t)} · ${when(dep.t,now)}`+(dep.rt?` · <span class="chip${Math.abs(dep.delay)>=60&&dep.delay>0?'" style="--c:var(--wa)':''}">${dl(dep.delay)}</span>`:' · da orario'):'Nessuna partenza programmata'}</span>`+
-      `<span class="sub">${n?`${n} bus in servizio`:'Nessun bus in servizio ora'}</span></button>`}).join('');
+  $('#ds').textContent='verso '+pretty(itSel!=null?ITSd[itSel].to:LN.dirs[dirSel].to)+(itSel!=null&&ITSd[itSel].v?' · '+itLab(itSel):'');
+  $('#dirs').innerHTML=Object.keys(LN.dirs).map(k=>{
+    const d=+k,D=LN.dirs[d];
+    if(d!==dirSel)return `<div class="dblk"><button class="drow cmp" data-d="${d}" aria-pressed="false"><span class="lb">Verso</span><b>${esc(pretty(D.to))}</b><span class="sub">da ${esc(pretty(D.from))}</span></button></div>`;
+    const it=itSel!=null?ITSd[itSel]:null,fromId=it?it.st[0]:D.fromId,from=it?it.fr:D.from,to=it?it.to:D.to;
+    const dep=departures(fromId,1,d,itSel)[0],n=shown().length;
+    const chips=ITSd.length>1?`<div class="its"><button class="itc" data-k="" aria-pressed="${itSel==null}">Tutti i percorsi</button>`+ITSd.map((x,i)=>`<button class="itc" data-k="${i}" aria-pressed="${itSel===i}"><i style="background:${PAL[i%PAL.length]}"></i>${esc(itLab(i))}</button>`).join('')+'</div>':'';
+    return `<div class="dblk"><button class="drow" data-d="${d}" aria-pressed="true"><span class="lb">Verso</span><b>${esc(pretty(to))}</b><span class="sub">da ${esc(pretty(from))}</span>`+
+      `<span class="sub">${dep?`Prossima partenza ${hm(dep.t)} · ${when(dep.t,now)}`+(dep.rt?` · <span class="chip"${dep.delay>=60?' style="--c:var(--wa)"':''}>${dl(dep.delay)}</span>`:' · da orario'):'Nessuna partenza programmata'}</span>`+
+      `<span class="sub">${n?`${n} bus in servizio`:'Nessun bus in servizio ora'}</span></button>${chips}</div>`}).join('');
   updateMap();
   if(popCur)popCur.update();
   const late=BS.until&&ymd(new Date())>BS.until?` · orari statici scaduti il ${BS.until.slice(6)}/${BS.until.slice(4,6)}`:'';
@@ -194,32 +216,31 @@ function initMap(){
   $('#tp').onpointerdown=()=>{tp=tp==='esri'?'osm':'esri';ls.s('bs.tile',tp);addTiles()};
 }
 function lineColor(){const c=info(ROUTE)[3],n=parseInt(c,16),lum=(0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255))/255;return lum>.8?'#6e6e73':'#'+c}
-function fitLine(){if(M&&LN)M.fitBounds(Object.values(LN.stops).map(s=>[s[1],s[2]]),{...pad(),maxZoom:15})}
-function styleDir(){
-  if(!M||!LN)return;const col=lineColor();
-  SH.forEach(s=>s.l.setStyle({color:col,weight:s.d===dirSel?6:3,opacity:s.d===dirSel?.9:.35}));
-  for(const id in SM)SM[id].setStyle(dirStops[dirSel].has(id)?{color:col,weight:3}:{color:'#8e8e93',weight:1.5});
+function fitLine(){
+  if(!M||!LN)return;const pts=[];
+  for(const k of vis())for(const s of ITS()[k].st)pts.push([LN.stops[s][1],LN.stops[s][2]]);
+  if(pts.length)M.fitBounds(pts,{...pad(),maxZoom:15});
 }
 function stopPopup(id){
-  const now=Date.now(),dep=departures(id,5);
+  const now=Date.now(),dep=departures(id,5,dirSel,itSel);
   return `<b>${esc(pretty(LN.stops[id][0]))}</b><div class="pl">Prossime partenze · linea ${esc(info(ROUTE)[1])}</div>`+
-    (dep.length?dep.map(e=>`<div class="dp"><b>${hm(e.t)}</b><span>verso ${esc(pretty(LN.stops[e.to][0]))}</span><em>${when(e.t,now)}${e.rt?' · '+dl(e.delay):' · da orario'}</em></div>`).join(''):'<div class="msg" style="margin:0">Nessuna partenza da questa fermata (è un capolinea di arrivo).</div>');
+    (dep.length?dep.map(e=>`<div class="dp"><b>${hm(e.t)}</b><span>verso ${esc(pretty(LN.stops[e.to][0]))}</span><em>${tag(e.its)}${when(e.t,now)}${e.rt?' · '+dl(e.delay):' · da orario'}</em></div>`).join(''):'<div class="msg" style="margin:0">Nessuna partenza da questa fermata (è un capolinea di arrivo).</div>');
 }
+// Mostra solo la direzione scelta (e, se scelto, un solo percorso): linee, fermate e bus
 function drawLine(){
-  if(!M||!LN)return;LL.clearLayers();SH=[];SM={};
-  for(const id in MK)M.removeLayer(MK[id].m);MK={};
-  for(const [d,p] of LN.shapes)SH.push({d,l:L.polyline(p,{color:'#888',weight:4}).addTo(LL)});
-  for(const id in LN.stops){const s=LN.stops[id];
-    SM[id]=L.circleMarker([s[1],s[2]],{radius:5,weight:2,fillColor:'#fff',fillOpacity:1,color:'#8e8e93'}).addTo(LL)
+  if(!M||!LN)return;LL.clearLayers();SM={};
+  const its=ITS(),cnt={};
+  for(const k of vis()){L.polyline(its[k].sh,{color:itCol(k),weight:6,opacity:.9}).addTo(LL);for(const s of its[k].st)(cnt[s]||(cnt[s]=[])).push(k)}
+  for(const id in cnt){const s=LN.stops[id],ks=cnt[id];
+    SM[id]=L.circleMarker([s[1],s[2]],{radius:5,weight:3,fillColor:'#fff',fillOpacity:1,color:ks.length===1?itCol(ks[0]):'#6e6e73'}).addTo(LL)
       .bindTooltip(esc(pretty(s[0])),{direction:'top',offset:[0,-4],className:'stp'}).bindPopup(()=>stopPopup(id),{minWidth:220})
       .on('popupopen',e=>e.target.closeTooltip())}
-  styleDir();
 }
 const CS={IN_TRANSIT_TO:'In viaggio verso',INCOMING_AT:'In arrivo a',STOPPED_AT:'Ferma a'};
 function popup(v){
-  const D=LN.dirs[dirOf(v)],u=(tu()[v.trip]||[]).find(x=>x.stop_id===v.stop),x=u&&(u.arrival&&u.arrival.time?u.arrival:u.departure);
+  const D=LN.dirs[dirOf(v)],ii=tripIts(v.trip),u=(tu()[v.trip]||[]).find(x=>x.stop_id===v.stop),x=u&&(u.arrival&&u.arrival.time?u.arrival:u.departure);
   const age=v.ts?Math.max(0,Math.round(Date.now()/1000-v.ts)):null;
-  const rows=[['Corsa',D&&'verso '+pretty(D.to)],['Partita alle',v.start&&v.start.slice(0,5)],['Targa',v.plate],
+  const rows=[['Corsa',D&&'verso '+pretty(D.to)],['Percorso',ii.length===1&&ITS().length>1&&itLab(ii[0])],['Partita alle',v.start&&v.start.slice(0,5)],['Targa',v.plate],
     [CS[v.st]||'Prossima fermata',v.stop&&LN.stops[v.stop]&&pretty(LN.stops[v.stop][0])],['Previsto alle',x&&x.time&&hm(x.time*1000)],['Ritardo',x&&x.delay!=null&&dl(x.delay)],
     ['Direzione',v.b!=null&&['N','NE','E','SE','S','SO','O','NO'][Math.round(v.b/45)%8]],['Aggiornato',age!=null&&age+' s fa']];
   return `<b>Bus ${esc(v.label||v.id)}</b>`+rows.filter(r=>r[1]).map(r=>`<div class="pr"><span>${r[0]}</span><b>${esc(r[1])}</b></div>`).join('');
@@ -227,7 +248,7 @@ function popup(v){
 function updateMap(){
   initMap();
   if(!M){$('#map').textContent='Mappa non disponibile: libreria non caricata.';return}
-  const vs=veh(),ids=new Set(vs.map(v=>v.id));
+  const vs=shown(),ids=new Set(vs.map(v=>v.id));
   for(const id in MK)if(!ids.has(id)){M.removeLayer(MK[id].m);delete MK[id]}
   const fresh=mapAt!==posAt;mapAt=posAt;
   const still=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches);
@@ -235,7 +256,7 @@ function updateMap(){
     let k=MK[v.id];
     if(!k)k=MK[v.id]=({m:L.marker([v.lat,v.lon],{icon:L.divIcon({className:'bmk',html:'<span></span>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(M),from:[v.lat,v.lon],to:[v.lat,v.lon],t0:0});
     const el=k.m.getElement();
-    if(el){const on=dirOf(v)===dirSel;el.classList.toggle('on',on);el.classList.toggle('off',!on);if(el.firstChild)el.firstChild.textContent=info(ROUTE)[1]}
+    if(el){el.classList.add('on');if(el.firstChild)el.firstChild.textContent=info(ROUTE)[1]}
     const D=LN.dirs[dirOf(v)],tip=`Bus ${v.label||v.id}${D?' · verso '+pretty(D.to):''}`;
     k.m.getTooltip()?k.m.setTooltipContent(tip):k.m.bindTooltip(tip);
     k.v=v;if(!k.m.getPopup())k.m.bindPopup(()=>popup(k.v));
@@ -255,9 +276,8 @@ async function pick(id){
   try{if(!BS.L[id])await loadScript('data/'+id+'.js')}
   catch(e){$('#dirs').innerHTML='<p class="msg">Dati della linea non trovati: serve la cartella data/ accanto a index.html.</p>';return}
   if(ROUTE!==id)return;
-  LN=BS.L[id];tripDir={};dirStops={0:new Set(),1:new Set()};
-  for(const t of LN.trips)tripDir[t[0]]=LN.vars[t[3]].d;
-  for(const v of LN.vars)v.s.forEach(s=>dirStops[v.d].add(s));
+  LN=BS.L[id];tripDir={};tripVar={};itSel=null;for(const id2 in MK){if(M)M.removeLayer(MK[id2].m)}MK={};
+  for(const t of LN.trips){tripDir[t[0]]=LN.vars[t[3]].d;tripVar[t[0]]=t[3]}
   if(!LN.dirs[dirSel])dirSel=Number(Object.keys(LN.dirs)[0]);
   initMap();drawLine();render();fitLine();
 }
