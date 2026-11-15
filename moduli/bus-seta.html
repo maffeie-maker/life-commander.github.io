@@ -22,10 +22,13 @@ header h1{font-size:1.2rem;font-weight:600;letter-spacing:-.02em;margin:0;flex:1
 header small{color:var(--mu);font-size:.78rem;font-variant-numeric:tabular-nums}
 .btn{font:inherit;font-size:.85rem;background:var(--card);color:var(--tx);border:0;border-radius:980px;padding:7px 14px;box-shadow:var(--sh),0 1px 6px rgba(0,0,0,.12);cursor:pointer;transition:transform .1s}
 .btn:active{transform:scale(.96)}
-.lines{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px;margin:0 -2px;scrollbar-width:none}
-.lines::-webkit-scrollbar{display:none}
+.lines{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px;margin:0 -2px;scrollbar-width:thin;scrollbar-color:var(--ln) transparent;cursor:grab}
+.lines::-webkit-scrollbar{height:6px}.lines::-webkit-scrollbar-thumb{background:var(--ln);border-radius:3px}
 .ln{flex:none;font:inherit;font-size:.85rem;font-weight:600;min-width:44px;padding:7px 12px;border:0;border-radius:980px;background:var(--card);color:var(--tx);cursor:pointer;box-shadow:var(--sh);transition:transform .1s}
 .ln:active{transform:scale(.95)}
+.ln{user-select:none;-webkit-user-select:none}.nb{margin-left:6px;font-size:.7rem;font-weight:500;opacity:.7}
+.flt{margin:0 2px 8px}
+.bmk.oth span{width:24px;height:24px;margin:3px;color:var(--t,#fff);font-size:9px}
 .ln::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:6px}
 .ln[aria-pressed=true]{background:var(--c);color:var(--t)}
 .ln[aria-pressed=true]::before{display:none}
@@ -78,6 +81,7 @@ header small{color:var(--mu);font-size:.78rem;font-variant-numeric:tabular-nums}
 <div class="tools">
   <button class="btn" id="tp">Mappa</button>
   <button class="btn" id="fit">Centra</button>
+  <button class="btn" id="fitv" hidden>Tutti i bus</button>
 </div>
 <div class="panel">
   <header>
@@ -85,6 +89,7 @@ header small{color:var(--mu);font-size:.78rem;font-variant-numeric:tabular-nums}
     <small id="clock"></small>
     <button class="btn" id="theme">Scuro</button>
   </header>
+  <div class="flt"><button class="itc" id="act" aria-pressed="false">Solo linee con bus in servizio<span class="nb" id="actn"></span></button></div>
   <div class="lines" id="lines" role="group" aria-label="Linea"></div>
   <section class="card" id="c-dir"><button class="ch" aria-expanded="true"><span class="lb" id="dl">Direzioni</span><span class="sum" id="ds"></span><i class="chev"></i></button><div class="cb"><div class="in"><div class="pad" id="dirs"></div></div></div></section>
   <p class="sub" id="foot" style="margin:10px 8px 2px;font-size:.75rem"></p>
@@ -104,6 +109,7 @@ const pretty=s=>String(s||'').toLowerCase().replace(/(^|[\s\-.'(\/])([a-zà-ù])
 const info=id=>BS.lines.find(l=>l[0]===id);
 let ROUTE=ls.g('bs.line'),LN=null,dirSel=Number(ls.g('bs.dir'))===1?1:0,vehAll=[],tuAll={},posAt=0,tuAt=0,tripDir={},tripVar={},itSel=null;
 if(!info(ROUTE))ROUTE=info('RE82')?'RE82':BS.lines[0][0];
+let actOnly=ls.g('bs.act')==='1',linesKey='';
 const veh=()=>vehAll.filter(v=>v.route===ROUTE),tu=()=>tuAll[ROUTE]||{};
 const dirOf=v=>v.d!=null?Number(v.d):(tripDir[v.trip]!=null?tripDir[v.trip]:-1);
 
@@ -165,10 +171,27 @@ const when=(t,now)=>{const m=Math.round((t-now)/60000),same=new Date(t).toDateSt
   return !same?`domani ${hm(t)}`:m<=0?'ora':m<60?`tra ${m} min`:`tra ${Math.floor(m/60)} h ${m%60} min`};
 
 // Pannello
-function renderLines(){
-  $('#lines').innerHTML=BS.lines.map(l=>`<button class="ln" data-id="${l[0]}" aria-pressed="${l[0]===ROUTE}" style="--c:#${l[3]};--t:#${l[4]}" title="${esc(l[2])}">${esc(l[1])}</button>`).join('');
-  const el=$('.ln[aria-pressed=true]');if(el&&el.scrollIntoView)el.scrollIntoView({inline:'center',block:'nearest'});
+const activeCounts=()=>{const c={};for(const v of vehAll)c[v.route]=(c[v.route]||0)+1;return c};
+function renderLines(force){
+  const c=activeCounts(),list=BS.lines.filter(l=>!actOnly||c[l[0]]||l[0]===ROUTE);
+  const key=ROUTE+'|'+actOnly+'|'+list.map(l=>l[0]+(actOnly?':'+(c[l[0]]||0):'')).join(',');
+  if(!force&&key===linesKey)return;linesKey=key;
+  const box=$('#lines'),sl=box.scrollLeft;
+  box.innerHTML=list.map(l=>`<button class="ln" data-id="${l[0]}" aria-pressed="${l[0]===ROUTE}" style="--c:#${l[3]};--t:#${l[4]}" title="${esc(l[2])}">${esc(l[1])}${actOnly&&c[l[0]]?`<span class="nb">${c[l[0]]}</span>`:''}</button>`).join('');
+  box.scrollLeft=sl;
+  const el=$('.ln[aria-pressed=true]');if(force&&el&&el.scrollIntoView)el.scrollIntoView({inline:'center',block:'nearest'});
 }
+function setAct(on){actOnly=on;ls.s('bs.act',on?'1':'0');$('#act').setAttribute('aria-pressed',String(on));$('#fitv').hidden=!on;renderLines(true);render()}
+$('#act').onclick=()=>{setAct(!actOnly);if(actOnly)fitVeh()};
+$('#act').setAttribute('aria-pressed',String(actOnly));$('#fitv').hidden=!actOnly;
+// Elenco linee scorrevole anche con il mouse: rotella e trascinamento
+(()=>{const el=$('#lines');let down=false,sx=0,sl=0,moved=false;
+  el.addEventListener('wheel',e=>{if(el.scrollWidth>el.clientWidth&&Math.abs(e.deltaY)>=Math.abs(e.deltaX)){el.scrollLeft+=e.deltaY;e.preventDefault()}},{passive:false});
+  el.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse')return;down=true;moved=false;sx=e.clientX;sl=el.scrollLeft});
+  addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-sx;if(Math.abs(dx)>4)moved=true;el.scrollLeft=sl-dx});
+  addEventListener('pointerup',()=>{down=false});
+  el.addEventListener('click',e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true);
+})();
 $('#lines').onclick=e=>{const b=e.target.closest('.ln');if(b&&b.dataset.id!==ROUTE)pick(b.dataset.id)};
 $('#dirs').onclick=e=>{const c=e.target.closest('.itc');if(c)return setIt(c.dataset.k===''?null:Number(c.dataset.k));const b=e.target.closest('.drow');if(b)setDir(Number(b.dataset.d))};
 const PAL=['#0a84ff','#ff9f0a','#30b0c7','#bf5af2','#ff375f'];
@@ -183,6 +206,7 @@ function setDir(d){if(d===dirSel)return;dirSel=d;itSel=null;ls.s('bs.dir',d);dra
 function setIt(k){itSel=k;drawLine();render();fitLine()}
 function render(){
   if(!LN)return;
+  renderLines();$('#actn').textContent=actOnly?' · '+Object.keys(activeCounts()).length+' linee':'';
   const now=Date.now(),L=info(ROUTE),ITSd=ITS();
   $('#dl').textContent=`Linea ${L[1]} · direzioni`;
   $('#ds').textContent='verso '+pretty(itSel!=null?ITSd[itSel].to:LN.dirs[dirSel].to)+(itSel!=null&&ITSd[itSel].v?' · '+itLab(itSel):'');
@@ -211,8 +235,8 @@ function initMap(){
   if(M||!window.L)return;
   M=L.map('map',{maxZoom:18,zoomControl:false});L.control.zoom({position:'bottomright'}).addTo(M);
   M.setView([44.6983,10.6307],12);addTiles();LL=L.layerGroup().addTo(M);
-  M.on('popupopen',e=>{popCur=e.popup});M.on('popupclose',()=>{popCur=null});
-  $('#fit').onpointerdown=fitLine;
+  M.on('popupopen',e=>{popCur=e.popup;const el=e.popup.getElement();if(el&&!el._pk){el._pk=1;el.addEventListener('click',ev=>{const a=ev.target.closest('a.pk');if(a){ev.preventDefault();pick(a.dataset.id)}})}});M.on('popupclose',()=>{popCur=null});
+  $('#fit').onpointerdown=fitLine;$('#fitv').onpointerdown=fitVeh;
   $('#tp').onpointerdown=()=>{tp=tp==='esri'?'osm':'esri';ls.s('bs.tile',tp);addTiles()};
 }
 function lineColor(){const c=info(ROUTE)[3],n=parseInt(c,16),lum=(0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255))/255;return lum>.8?'#6e6e73':'#'+c}
@@ -245,10 +269,17 @@ function popup(v){
     ['Direzione',v.b!=null&&['N','NE','E','SE','S','SO','O','NO'][Math.round(v.b/45)%8]],['Aggiornato',age!=null&&age+' s fa']];
   return `<b>Bus ${esc(v.label||v.id)}</b>`+rows.filter(r=>r[1]).map(r=>`<div class="pr"><span>${r[0]}</span><b>${esc(r[1])}</b></div>`).join('');
 }
+function popupOther(v){
+  const li=info(v.route),u=(tuAll[v.route]||{})[v.trip]||[],x=u.find(a=>a.stop_id===v.stop),xx=x&&(x.arrival&&x.arrival.time?x.arrival:x.departure);
+  const age=v.ts?Math.max(0,Math.round(Date.now()/1000-v.ts)):null;
+  const rows=[['Linea',li&&li[1]],['Percorso',li&&li[2]],['Partita alle',v.start&&v.start.slice(0,5)],['Targa',v.plate],['Previsto alle',xx&&xx.time&&hm(xx.time*1000)],['Ritardo',xx&&xx.delay!=null&&dl(xx.delay)],['Aggiornato',age!=null&&age+' s fa']];
+  return `<b>Bus ${esc(v.label||v.id)}</b>`+rows.filter(r=>r[1]).map(r=>`<div class="pr"><span>${r[0]}</span><b>${esc(r[1])}</b></div>`).join('')+`<p style="margin:8px 0 0"><a href="#" class="pk" data-id="${esc(v.route)}">Mostra la linea ${esc(li?li[1]:'')}</a></p>`;
+}
+function fitVeh(){if(!M)return;const p=vehAll.map(v=>[v.lat,v.lon]);if(p.length)M.fitBounds(p,{...pad(),maxZoom:13})}
 function updateMap(){
   initMap();
   if(!M){$('#map').textContent='Mappa non disponibile: libreria non caricata.';return}
-  const vs=shown(),ids=new Set(vs.map(v=>v.id));
+  const own=shown(),vs=own.concat(actOnly?vehAll.filter(v=>v.route!==ROUTE):[]),ids=new Set(vs.map(v=>v.id));
   for(const id in MK)if(!ids.has(id)){M.removeLayer(MK[id].m);delete MK[id]}
   const fresh=mapAt!==posAt;mapAt=posAt;
   const still=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches);
@@ -256,10 +287,10 @@ function updateMap(){
     let k=MK[v.id];
     if(!k)k=MK[v.id]=({m:L.marker([v.lat,v.lon],{icon:L.divIcon({className:'bmk',html:'<span></span>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(M),from:[v.lat,v.lon],to:[v.lat,v.lon],t0:0});
     const el=k.m.getElement();
-    if(el){el.classList.add('on');if(el.firstChild)el.firstChild.textContent=info(ROUTE)[1]}
-    const D=LN.dirs[dirOf(v)],tip=`Bus ${v.label||v.id}${D?' · verso '+pretty(D.to):''}`;
+    if(el){const mine=v.route===ROUTE,li=info(v.route);el.classList.toggle('on',mine);el.classList.toggle('oth',!mine);if(!mine&&li){el.style.setProperty('--c','#'+li[3]);el.style.setProperty('--t','#'+li[4])}else{el.style.removeProperty('--c');el.style.removeProperty('--t')}if(el.firstChild)el.firstChild.textContent=li?li[1]:''}
+    const D=v.route===ROUTE?LN.dirs[dirOf(v)]:null,tip=v.route===ROUTE?`Bus ${v.label||v.id}${D?' · verso '+pretty(D.to):''}`:`Linea ${info(v.route)?info(v.route)[1]:''} · bus ${v.label||v.id}`;
     k.m.getTooltip()?k.m.setTooltipContent(tip):k.m.bindTooltip(tip);
-    k.v=v;if(!k.m.getPopup())k.m.bindPopup(()=>popup(k.v));
+    k.v=v;if(!k.m.getPopup())k.m.bindPopup(()=>k.v.route===ROUTE?popup(k.v):popupOther(k.v));
     if(fresh){const p=k.m.getLatLng();k.from=[p.lat,p.lng];k.to=[v.lat,v.lon];k.t0=performance.now();if(still||!k.seen){k.m.setLatLng(k.to);k.from=k.to}k.seen=1}
   }
   if(fresh&&!still){
@@ -272,7 +303,7 @@ function updateMap(){
 // Selezione linea: i dati di ogni linea sono nel file data/<id>.js, caricato solo quando serve
 const loadScript=src=>new Promise((ok,ko)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=ko;document.head.appendChild(s)});
 async function pick(id){
-  ROUTE=id;ls.s('bs.line',id);renderLines();
+  ROUTE=id;ls.s('bs.line',id);renderLines(true);
   try{if(!BS.L[id])await loadScript('data/'+id+'.js')}
   catch(e){$('#dirs').innerHTML='<p class="msg">Dati della linea non trovati: serve la cartella data/ accanto a index.html.</p>';return}
   if(ROUTE!==id)return;
