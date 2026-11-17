@@ -207,7 +207,7 @@ const shown=()=>veh().filter(v=>dirOf(v)===dirSel&&(itSel==null||tripIts(v.trip)
 const tag=its=>its.length===1&&ITS().length>1?`<span class="vt"><i style="background:${PAL[its[0]%PAL.length]}"></i>${esc(itLab(its[0]))}</span> · `:'';
 function setDir(d){if(d===dirSel)return;dirSel=d;itSel=null;ls.s('bs.dir',d);drawLine();render();fitLine()}
 function setIt(k){itSel=k;drawLine();render();fitLine()}
-const GRACE=180000,STALE_S=120; // tolleranza prima di aspettarsi il mezzo nel feed; secondi oltre cui la posizione è considerata ferma
+const GRACE=420000,STALE_S=420; // tolleranza prima di aspettarsi il mezzo nel feed; secondi oltre cui la posizione è considerata ferma
 const feedOk=()=>posAt&&Date.now()-posAt<90000;
 const ageS=v=>v.ts?Math.max(0,Math.round(Date.now()/1000-v.ts)):0;
 const dseg=(p,a,b)=>{const k=Math.cos(p[0]*Math.PI/180),px=p[1]*k,py=p[0],ax=a[1]*k,ay=a[0],bx=b[1]*k,by=b[0],dx=bx-ax,dy=by-ay,t=dx||dy?Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy))):0;return Math.hypot(px-(ax+t*dx),py-(ay+t*dy))*111320};
